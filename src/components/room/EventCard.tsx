@@ -9,15 +9,65 @@ interface Props {
   player: Player;
 }
 
+// Reuse a single AudioContext across all clicks
+let audioCtx: AudioContext | null = null;
+
+function playClick() {
+  try {
+    if (!audioCtx || audioCtx.state === 'closed') {
+      audioCtx = new AudioContext();
+    }
+    const ctx = audioCtx;
+    const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.018), ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.004));
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 1100;
+    filter.Q.value = 0.7;
+    const gain = ctx.createGain();
+    gain.gain.value = 0.25;
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    src.start();
+  } catch { /* audio not available */ }
+}
+
 export default function EventCard({ event, player }: Props) {
   const { dispatch } = useGame();
   const { template } = event;
   const [roomImage, setRoomImage] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(true);
+  const [displayedText, setDisplayedText] = useState('');
 
+  // Typewriter effect with mechanical click sounds
   useEffect(() => {
+    setDisplayedText('');
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      setDisplayedText(template.description.slice(0, i));
+      playClick();
+      if (i >= template.description.length) clearInterval(interval);
+    }, 28);
+    return () => clearInterval(interval);
+  }, [template.description]);
+
+  // Image generation
+  useEffect(() => {
+    setRoomImage(null);
+    setImageLoading(true);
     const key = `${event.roomPosition.row},${event.roomPosition.col}`;
     generateRoomImage(key, template.type, template.title, template.description)
-      .then(setRoomImage);
+      .then(img => {
+        setRoomImage(img);
+        setImageLoading(false);
+      });
   }, [event.roomPosition.row, event.roomPosition.col]);
 
   function canChoose(choice: typeof template.choices[number]) {
@@ -36,6 +86,22 @@ export default function EventCard({ event, player }: Props) {
       borderRadius: 4,
       padding: '14px 16px',
     }}>
+      {imageLoading && (
+        <div style={{
+          width: '100%',
+          aspectRatio: '1',
+          background: 'repeating-linear-gradient(0deg, var(--color-shadow) 0px, var(--color-shadow) 3px, var(--color-stone-mid) 3px, var(--color-stone-mid) 4px)',
+          borderRadius: 3,
+          marginBottom: 12,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <span style={{ color: 'var(--color-parchment-dim)', fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>
+            generating...
+          </span>
+        </div>
+      )}
       {roomImage && (
         <img
           src={roomImage}
@@ -54,7 +120,10 @@ export default function EventCard({ event, player }: Props) {
         {template.title}
       </h3>
       <p style={{ color: 'var(--color-parchment)', lineHeight: 1.6, marginBottom: 14, fontSize: 14 }}>
-        {template.description}
+        {displayedText}
+        {displayedText.length < template.description.length && (
+          <span style={{ opacity: 0.6 }}>▌</span>
+        )}
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {template.choices.map(choice => {
