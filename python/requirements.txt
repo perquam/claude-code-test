@@ -1,5 +1,4 @@
 fastapi
 uvicorn
-huggingface_hub[inference]
 Pillow
-python-dotenv
+pixellab

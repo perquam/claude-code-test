@@ -2,27 +2,24 @@ import base64
 import io
 import os
 
-from dotenv import load_dotenv
-from fastapi import FastAPI
+import pixellab
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from huggingface_hub import InferenceClient
+from fastapi import Response
 from pydantic import BaseModel
-
-load_dotenv()
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=[],
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+",
     allow_methods=["POST"],
     allow_headers=["Content-Type"],
 )
 
-client = InferenceClient(
-    provider="fal-ai",
-    api_key=os.environ["HF_TOKEN"],
-)
+secret = os.environ.get("PIXELLAB_SECRET", "")
+client = pixellab.Client(secret=secret) if secret else None
 
 
 class GenerateRequest(BaseModel):
@@ -31,11 +28,17 @@ class GenerateRequest(BaseModel):
 
 @app.post("/generate")
 def generate(req: GenerateRequest):
-    image = client.text_to_image(
-        req.prompt,
-        model="gokaygokay/Flux-2D-Game-Assets-LoRA",
+    if client is None:
+        raise HTTPException(status_code=500, detail="PIXELLAB_SECRET env var not set")
+
+    response = client.generate_image_pixflux(
+        description=req.prompt,
+        image_size={"width": 256, "height": 256},
     )
+
+    pil_image = response.image.pil_image()
     buf = io.BytesIO()
-    image.save(buf, format="PNG")
+    pil_image.save(buf, format="PNG")
     b64 = base64.b64encode(buf.getvalue()).decode()
+
     return {"image": f"data:image/png;base64,{b64}"}
