@@ -3,10 +3,13 @@ import io
 import os
 
 import pixellab
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Response
 from pydantic import BaseModel
+
+load_dotenv()
 
 app = FastAPI()
 
@@ -22,6 +25,10 @@ secret = os.environ.get("PIXELAB_API_KEY", "")
 client = pixellab.Client(secret=secret) if secret else None
 
 
+class GenerateRequest(BaseModel):
+    prompt: str
+
+
 def _generate_png(prompt: str) -> bytes:
     if client is None:
         raise HTTPException(status_code=500, detail="PIXELAB_API_KEY env var not set")
@@ -35,10 +42,6 @@ def _generate_png(prompt: str) -> bytes:
     buf = io.BytesIO()
     pil_image.save(buf, format="PNG")
     return buf.getvalue()
-
-
-class GenerateRequest(BaseModel):
-    prompt: str
 
 
 @app.post("/generate")
