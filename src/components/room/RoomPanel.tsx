@@ -50,7 +50,7 @@ export default function RoomPanel() {
         )}
       </div>
 
-      {/* Active event */}
+      {/* Active event — fills remaining height, log hidden while event is active */}
       {phase === 'EVENT' && state.activeEvent && (
         <EventCard
           event={state.activeEvent}
@@ -92,8 +92,8 @@ export default function RoomPanel() {
         <ItemList items={currentRoom.loot} mode="pickup" />
       )}
 
-      {/* Log */}
-      <div style={{
+      {/* Log — only shown when not in an active event */}
+      {phase !== 'EVENT' && <div style={{
         flex: 1,
         overflowY: 'auto',
         display: 'flex',
@@ -116,7 +116,7 @@ export default function RoomPanel() {
             {entry.message}
           </div>
         ))}
-      </div>
+      </div>}
     </div>
   );
 }

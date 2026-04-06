@@ -34,8 +34,8 @@
 }
 
 .room-cell[data-state="UNDISCOVERED"] {
-  background: var(--color-void);
-  border-color: #0e0e16;
+  background: #0d0d1c;
+  border-color: #1e1e32;
 }
 
 .room-cell[data-state="VISITED"] {
