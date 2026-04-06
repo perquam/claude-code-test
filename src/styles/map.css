@@ -1,0 +1,103 @@
+.dungeon-map {
+  display: grid;
+  grid-template-columns: repeat(14, 1fr);
+  grid-template-rows: repeat(14, 1fr);
+  gap: 2px;
+  padding: 12px;
+  background: var(--color-void);
+  aspect-ratio: 1;
+  width: 100%;
+  max-width: 480px;
+  position: relative;
+}
+
+.room-cell.void {
+  background: transparent;
+  border-color: transparent;
+  pointer-events: none;
+}
+
+.room-cell {
+  position: relative;
+  background: var(--color-void);
+  border: 1px solid #111118;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition: background 0.25s ease, border-color 0.25s ease;
+  min-height: 0;
+  aspect-ratio: 1;
+  overflow: hidden;
+  user-select: none;
+}
+
+.room-cell[data-state="UNDISCOVERED"] {
+  background: var(--color-void);
+  border-color: #0e0e16;
+}
+
+.room-cell[data-state="VISITED"] {
+  background: var(--color-shadow);
+  border-color: #1e1e32;
+}
+
+.room-cell[data-state="VISITED"] .room-icon {
+  filter: grayscale(0.9) brightness(0.4);
+  opacity: 0.6;
+}
+
+.room-cell[data-state="CURRENT"] {
+  background: var(--color-stone);
+  border-color: var(--color-torch-dim);
+  box-shadow: 0 0 6px 1px rgba(200, 168, 75, 0.25);
+}
+
+/* Player marker */
+.room-cell .player-marker {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Exit marker */
+.room-cell.is-exit[data-state="VISITED"],
+.room-cell.is-exit[data-state="CURRENT"] {
+  border-color: var(--color-exit);
+}
+
+/* Room icon (event type) */
+.room-icon {
+  font-size: 14px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Beast hint arrow */
+.beast-hint-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.beast-hint-arrow {
+  color: var(--color-beast-hint);
+  font-size: 22px;
+  text-shadow: 0 0 8px var(--color-beast-hint);
+  animation: beastPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes beastPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.8); }
+}

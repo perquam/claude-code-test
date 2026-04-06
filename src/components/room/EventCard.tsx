@@ -76,7 +76,15 @@ export default function EventCard({ event, player, roomImage }: Props) {
         <img
           src={roomImage}
           alt={template.title}
-          style={{ width: '100%', borderRadius: 3, marginBottom: 12, imageRendering: 'pixelated' }}
+          style={{
+            width: '100%',
+            maxHeight: 140,
+            objectFit: 'cover',
+            objectPosition: 'center top',
+            borderRadius: 3,
+            marginBottom: 12,
+            imageRendering: 'pixelated',
+          }}
         />
       )}
       <h3 style={{
