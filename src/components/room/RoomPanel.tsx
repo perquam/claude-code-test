@@ -33,7 +33,8 @@ export default function RoomPanel() {
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      height: '100%',
+      flex: 1,
+      minHeight: 0,
       overflow: 'hidden',
     }}>
       {/* Room label — always visible at very top */}

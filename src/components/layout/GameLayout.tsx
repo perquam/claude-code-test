@@ -36,7 +36,7 @@ export default function GameLayout() {
       </div>
 
       {/* Right panel: room dialogue / events (full height) */}
-      <div style={{ overflow: 'hidden' }}>
+      <div style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <RoomPanel />
       </div>
 

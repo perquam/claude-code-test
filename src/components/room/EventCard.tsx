@@ -9,8 +9,10 @@ interface Props {
   player: Player;
 }
 
+// --- Typewriter sound: single looping playback, not per-character ---
 let twCtx: AudioContext | null = null;
 let twBuffer: AudioBuffer | null = null;
+let activeSource: AudioBufferSourceNode | null = null;
 
 async function loadTypewriterSound() {
   if (twBuffer) return;
@@ -23,17 +25,28 @@ async function loadTypewriterSound() {
 }
 loadTypewriterSound();
 
-function playClick() {
+function startTypewriterLoop() {
   if (!twCtx || !twBuffer) return;
+  stopTypewriterLoop();
   try {
+    if (twCtx.state === 'suspended') twCtx.resume();
     const source = twCtx.createBufferSource();
     source.buffer = twBuffer;
+    source.loop = true;
     const gain = twCtx.createGain();
     gain.gain.value = 0.3;
     source.connect(gain);
     gain.connect(twCtx.destination);
     source.start();
+    activeSource = source;
   } catch { /* ignore */ }
+}
+
+function stopTypewriterLoop() {
+  if (activeSource) {
+    try { activeSource.stop(); } catch { /* already stopped */ }
+    activeSource = null;
+  }
 }
 
 export default function EventCard({ event, player }: Props) {
@@ -44,13 +57,19 @@ export default function EventCard({ event, player }: Props) {
   useEffect(() => {
     setDisplayedText('');
     let i = 0;
+    startTypewriterLoop();
     const interval = setInterval(() => {
       i++;
       setDisplayedText(template.description.slice(0, i));
-      playClick();
-      if (i >= template.description.length) clearInterval(interval);
+      if (i >= template.description.length) {
+        clearInterval(interval);
+        stopTypewriterLoop();
+      }
     }, 38);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      stopTypewriterLoop();
+    };
   }, [template.description]);
 
   function canChoose(choice: typeof template.choices[number]) {
