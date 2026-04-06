@@ -35,10 +35,8 @@ export default function GameLayout() {
         <PlayerStats />
       </div>
 
-      {/* Right panel: room dialogue / events (full height) */}
-      <div style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        <RoomPanel />
-      </div>
+      {/* Right panel — RoomPanel is a direct grid item, gets full cell height */}
+      <RoomPanel />
 
       {isOver && <Modal onRestart={restart} />}
     </div>

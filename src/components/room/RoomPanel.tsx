@@ -31,15 +31,12 @@ export default function RoomPanel() {
 
   return (
     <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      flex: 1,
-      minHeight: 0,
+      display: 'grid',
+      gridTemplateRows: roomImage ? 'auto 200px 1fr' : 'auto 1fr',
       overflow: 'hidden',
     }}>
-      {/* Room label — always visible at very top */}
+      {/* Row 1: Room label */}
       <div style={{
-        flexShrink: 0,
         fontFamily: 'var(--font-mono)',
         fontSize: 11,
         color: 'var(--color-parchment-dim)',
@@ -54,30 +51,26 @@ export default function RoomPanel() {
         )}
       </div>
 
-      {/* Room image — pinned below label, never scrolls */}
+      {/* Row 2: Room image — exactly 200px, dark bg for transparent areas */}
       {roomImage && (
-        <img
-          src={roomImage}
-          alt={roomLabel}
-          style={{
-            flexShrink: 0,
-            width: '100%',
-            height: 200,
-            objectFit: 'cover',
-            objectPosition: 'center',
-            imageRendering: 'pixelated',
-            display: 'block',
-            borderBottom: '1px solid var(--color-border)',
-          }}
-        />
+        <div style={{ background: '#08080f', borderBottom: '1px solid var(--color-border)' }}>
+          <img
+            src={roomImage}
+            alt={roomLabel}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center',
+              imageRendering: 'pixelated',
+              display: 'block',
+            }}
+          />
+        </div>
       )}
 
-      {/* Scrollable area — plot text, choices, combat, log, loot */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        minHeight: 0,
-      }}>
+      {/* Row 3: Scrollable content — plot, choices, combat, log */}
+      <div style={{ overflowY: 'auto' }}>
         {phase === 'EVENT' && state.activeEvent && (
           <EventCard event={state.activeEvent} player={state.player} />
         )}

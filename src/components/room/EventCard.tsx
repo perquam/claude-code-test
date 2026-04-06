@@ -9,43 +9,23 @@ interface Props {
   player: Player;
 }
 
-// --- Typewriter sound: single looping playback, not per-character ---
-let twCtx: AudioContext | null = null;
-let twBuffer: AudioBuffer | null = null;
-let activeSource: AudioBufferSourceNode | null = null;
+// Single audio element — only one sound can ever play at a time
+let typewriterAudio: HTMLAudioElement | null = null;
 
-async function loadTypewriterSound() {
-  if (twBuffer) return;
-  try {
-    twCtx = new AudioContext();
-    const res = await fetch(typwriterSrc);
-    const buf = await res.arrayBuffer();
-    twBuffer = await twCtx.decodeAudioData(buf);
-  } catch { /* audio unavailable */ }
-}
-loadTypewriterSound();
-
-function startTypewriterLoop() {
-  if (!twCtx || !twBuffer) return;
-  stopTypewriterLoop();
-  try {
-    if (twCtx.state === 'suspended') twCtx.resume();
-    const source = twCtx.createBufferSource();
-    source.buffer = twBuffer;
-    source.loop = true;
-    const gain = twCtx.createGain();
-    gain.gain.value = 0.3;
-    source.connect(gain);
-    gain.connect(twCtx.destination);
-    source.start();
-    activeSource = source;
-  } catch { /* ignore */ }
+function startSound() {
+  if (!typewriterAudio) {
+    typewriterAudio = new Audio(typwriterSrc);
+    typewriterAudio.loop = true;
+    typewriterAudio.volume = 0.3;
+  }
+  typewriterAudio.currentTime = 0;
+  typewriterAudio.play().catch(() => {});
 }
 
-function stopTypewriterLoop() {
-  if (activeSource) {
-    try { activeSource.stop(); } catch { /* already stopped */ }
-    activeSource = null;
+function stopSound() {
+  if (typewriterAudio) {
+    typewriterAudio.pause();
+    typewriterAudio.currentTime = 0;
   }
 }
 
@@ -57,18 +37,18 @@ export default function EventCard({ event, player }: Props) {
   useEffect(() => {
     setDisplayedText('');
     let i = 0;
-    startTypewriterLoop();
+    startSound();
     const interval = setInterval(() => {
       i++;
       setDisplayedText(template.description.slice(0, i));
       if (i >= template.description.length) {
         clearInterval(interval);
-        stopTypewriterLoop();
+        stopSound();
       }
     }, 38);
     return () => {
       clearInterval(interval);
-      stopTypewriterLoop();
+      stopSound();
     };
   }, [template.description]);
 
