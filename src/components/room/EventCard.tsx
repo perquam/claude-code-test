@@ -11,42 +11,51 @@ interface Props {
 
 // Single audio element — only one sound can ever play at a time
 let typewriterAudio: HTMLAudioElement | null = null;
+let soundShouldPlay = false;
 
-function startSound() {
+function ensureAudio() {
   if (!typewriterAudio) {
     typewriterAudio = new Audio(typwriterSrc);
     typewriterAudio.loop = true;
     typewriterAudio.volume = 0.3;
   }
-  typewriterAudio.currentTime = 0;
-  typewriterAudio.play().catch(() => {});
+}
+
+function startSound() {
+  ensureAudio();
+  soundShouldPlay = true;
+  typewriterAudio!.currentTime = 0;
+  typewriterAudio!.play().catch(() => {
+    // Browser blocked autoplay — we'll resume on first user gesture
+  });
 }
 
 function stopSound() {
+  soundShouldPlay = false;
   if (typewriterAudio) {
     typewriterAudio.pause();
     typewriterAudio.currentTime = 0;
   }
 }
 
-/** Split text into tokens: each word and each whitespace chunk */
-function tokenize(text: string): string[] {
-  const tokens: string[] = [];
-  let i = 0;
-  while (i < text.length) {
-    if (text[i] === ' ' || text[i] === '\n') {
-      let j = i;
-      while (j < text.length && (text[j] === ' ' || text[j] === '\n')) j++;
-      tokens.push(text.slice(i, j));
-      i = j;
-    } else {
-      let j = i;
-      while (j < text.length && text[j] !== ' ' && text[j] !== '\n') j++;
-      tokens.push(text.slice(i, j));
-      i = j;
-    }
+// Resume audio on first user interaction if it was blocked by autoplay policy
+function onFirstInteraction() {
+  if (soundShouldPlay && typewriterAudio?.paused) {
+    typewriterAudio.play().catch(() => {});
   }
-  return tokens;
+  document.removeEventListener('click', onFirstInteraction);
+  document.removeEventListener('keydown', onFirstInteraction);
+}
+document.addEventListener('click', onFirstInteraction);
+document.addEventListener('keydown', onFirstInteraction);
+
+/** Split text into words (keeping trailing space with each word) */
+function splitWords(text: string): string[] {
+  const words: string[] = [];
+  const re = /\S+\s*/g;
+  let m;
+  while ((m = re.exec(text)) !== null) words.push(m[0]);
+  return words;
 }
 
 export default function EventCard({ event, player }: Props) {
@@ -58,31 +67,22 @@ export default function EventCard({ event, player }: Props) {
   useEffect(() => {
     setDisplayedText('');
     cancelRef.current = false;
-    const tokens = tokenize(template.description);
+    const words = splitWords(template.description);
 
     let cancelled = false;
     async function typeText() {
       startSound();
       let built = '';
-      for (const token of tokens) {
-        if (cancelled) break;
-        const isSpace = token[0] === ' ' || token[0] === '\n';
-        if (isSpace) {
-          // Append whitespace instantly
-          built += token;
-          setDisplayedText(built);
-        } else {
-          // Type each character of the word fast (25ms per char)
-          for (let c = 0; c < token.length; c++) {
-            if (cancelled) break;
-            built += token[c];
-            setDisplayedText(built);
-            await new Promise(r => setTimeout(r, 25));
-          }
-          // Random pause after word (200–500ms)
-          if (!cancelled) {
-            await new Promise(r => setTimeout(r, 200 + Math.random() * 300));
-          }
+      let i = 0;
+      while (i < words.length && !cancelled) {
+        // Grab 1–4 words at once
+        const chunk = 1 + Math.floor(Math.random() * 4);
+        const end = Math.min(i + chunk, words.length);
+        for (let w = i; w < end; w++) built += words[w];
+        i = end;
+        setDisplayedText(built);
+        if (i < words.length && !cancelled) {
+          await new Promise(r => setTimeout(r, 120 + Math.random() * 280));
         }
       }
       if (!cancelled) stopSound();
