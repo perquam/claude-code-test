@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import type { ActiveEvent } from '../../types/room';
 import type { Player } from '../../types/player';
 import { useGame } from '../../store/useGame';
-import { generateRoomImage } from '../../services/imageGen';
 
 interface Props {
   event: ActiveEvent;
   player: Player;
+  roomImage?: string;
 }
 
 // Reuse a single AudioContext across all clicks
@@ -38,11 +38,9 @@ function playClick() {
   } catch { /* audio not available */ }
 }
 
-export default function EventCard({ event, player }: Props) {
+export default function EventCard({ event, player, roomImage }: Props) {
   const { dispatch } = useGame();
   const { template } = event;
-  const [roomImage, setRoomImage] = useState<string | null>(null);
-  const [imageLoading, setImageLoading] = useState(true);
   const [displayedText, setDisplayedText] = useState('');
 
   // Typewriter effect with mechanical click sounds
@@ -54,21 +52,9 @@ export default function EventCard({ event, player }: Props) {
       setDisplayedText(template.description.slice(0, i));
       playClick();
       if (i >= template.description.length) clearInterval(interval);
-    }, 28);
+    }, 55);
     return () => clearInterval(interval);
   }, [template.description]);
-
-  // Image generation
-  useEffect(() => {
-    setRoomImage(null);
-    setImageLoading(true);
-    const key = `${event.roomPosition.row},${event.roomPosition.col}`;
-    generateRoomImage(key, template.type, template.title, template.description)
-      .then(img => {
-        setRoomImage(img);
-        setImageLoading(false);
-      });
-  }, [event.roomPosition.row, event.roomPosition.col]);
 
   function canChoose(choice: typeof template.choices[number]) {
     const req = choice.requires;
@@ -86,22 +72,6 @@ export default function EventCard({ event, player }: Props) {
       borderRadius: 4,
       padding: '14px 16px',
     }}>
-      {imageLoading && (
-        <div style={{
-          width: '100%',
-          aspectRatio: '1',
-          background: 'repeating-linear-gradient(0deg, var(--color-shadow) 0px, var(--color-shadow) 3px, var(--color-stone-mid) 3px, var(--color-stone-mid) 4px)',
-          borderRadius: 3,
-          marginBottom: 12,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <span style={{ color: 'var(--color-parchment-dim)', fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>
-            generating...
-          </span>
-        </div>
-      )}
       {roomImage && (
         <img
           src={roomImage}

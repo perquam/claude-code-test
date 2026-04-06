@@ -24,6 +24,6 @@ dist-ssr
 *.sw?
 
 # Python image server
-python/.env
+python/.venv/
 python/__pycache__/
 python/*.pyc
