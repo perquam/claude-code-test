@@ -7,10 +7,8 @@ import typwriterSrc from '../../assets/typewriter.mp3';
 interface Props {
   event: ActiveEvent;
   player: Player;
-  roomImage?: string;
 }
 
-// Load typewriter sound once via Web Audio API for low-latency repeated playback
 let twCtx: AudioContext | null = null;
 let twBuffer: AudioBuffer | null = null;
 
@@ -38,12 +36,11 @@ function playClick() {
   } catch { /* ignore */ }
 }
 
-export default function EventCard({ event, player, roomImage }: Props) {
+export default function EventCard({ event, player }: Props) {
   const { dispatch } = useGame();
   const { template } = event;
   const [displayedText, setDisplayedText] = useState('');
 
-  // Typewriter effect
   useEffect(() => {
     setDisplayedText('');
     let i = 0;
@@ -66,83 +63,53 @@ export default function EventCard({ event, player, roomImage }: Props) {
   }
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      flex: 1,
-      minHeight: 0,
-      background: 'var(--color-shadow)',
-      border: '1px solid var(--color-highlight)',
-      borderRadius: 4,
-      overflow: 'hidden',
-    }}>
-      {/* Room image — fixed banner at top */}
-      {roomImage && (
-        <img
-          src={roomImage}
-          alt={template.title}
-          style={{
-            width: '100%',
-            height: 160,
-            objectFit: 'cover',
-            objectPosition: 'center',
-            imageRendering: 'pixelated',
-            flexShrink: 0,
-            display: 'block',
-          }}
-        />
-      )}
-
-      {/* Scrollable text + choices */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', minHeight: 0 }}>
-        <h3 style={{
-          color: 'var(--color-torch)',
-          fontSize: 14,
-          marginBottom: 10,
-          fontFamily: 'var(--font-mono)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-        }}>
-          {template.title}
-        </h3>
-        <p style={{ color: 'var(--color-parchment)', lineHeight: 1.6, marginBottom: 14, fontSize: 14 }}>
-          {displayedText}
-          {displayedText.length < template.description.length && (
-            <span style={{ opacity: 0.6 }}>▌</span>
-          )}
-        </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {template.choices.map(choice => {
-            const enabled = canChoose(choice);
-            return (
-              <button
-                key={choice.id}
-                disabled={!enabled}
-                onClick={() => dispatch({ type: 'CHOOSE_EVENT', choiceId: choice.id })}
-                style={{
-                  background: enabled ? 'var(--color-stone-mid)' : 'var(--color-shadow-mid)',
-                  color: enabled ? 'var(--color-parchment)' : 'var(--color-parchment-dim)',
-                  border: `1px solid ${enabled ? 'var(--color-highlight)' : 'var(--color-border)'}`,
-                  borderRadius: 3,
-                  padding: '8px 12px',
-                  textAlign: 'left',
-                  fontSize: 13,
-                  transition: 'background 0.15s',
-                  cursor: enabled ? 'pointer' : 'not-allowed',
-                }}
-                onMouseOver={e => { if (enabled) (e.currentTarget as HTMLElement).style.background = 'var(--color-highlight)'; }}
-                onMouseOut={e => { (e.currentTarget as HTMLElement).style.background = enabled ? 'var(--color-stone-mid)' : 'var(--color-shadow-mid)'; }}
-              >
-                {choice.text}
-                {choice.requires?.item && !enabled && (
-                  <span style={{ color: 'var(--color-blood)', marginLeft: 6, fontSize: 11 }}>
-                    (requires {choice.requires.item.replace(/_/g, ' ').toLowerCase()})
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+    <div style={{ padding: '14px 16px' }}>
+      <h3 style={{
+        color: 'var(--color-torch)',
+        fontSize: 14,
+        marginBottom: 10,
+        fontFamily: 'var(--font-mono)',
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+      }}>
+        {template.title}
+      </h3>
+      <p style={{ color: 'var(--color-parchment)', lineHeight: 1.6, marginBottom: 14, fontSize: 14 }}>
+        {displayedText}
+        {displayedText.length < template.description.length && (
+          <span style={{ opacity: 0.6 }}>▌</span>
+        )}
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {template.choices.map(choice => {
+          const enabled = canChoose(choice);
+          return (
+            <button
+              key={choice.id}
+              disabled={!enabled}
+              onClick={() => dispatch({ type: 'CHOOSE_EVENT', choiceId: choice.id })}
+              style={{
+                background: enabled ? 'var(--color-stone-mid)' : 'var(--color-shadow-mid)',
+                color: enabled ? 'var(--color-parchment)' : 'var(--color-parchment-dim)',
+                border: `1px solid ${enabled ? 'var(--color-highlight)' : 'var(--color-border)'}`,
+                borderRadius: 3,
+                padding: '8px 12px',
+                textAlign: 'left',
+                fontSize: 13,
+                cursor: enabled ? 'pointer' : 'not-allowed',
+              }}
+              onMouseOver={e => { if (enabled) (e.currentTarget as HTMLElement).style.background = 'var(--color-highlight)'; }}
+              onMouseOut={e => { (e.currentTarget as HTMLElement).style.background = enabled ? 'var(--color-stone-mid)' : 'var(--color-shadow-mid)'; }}
+            >
+              {choice.text}
+              {choice.requires?.item && !enabled && (
+                <span style={{ color: 'var(--color-blood)', marginLeft: 6, fontSize: 11 }}>
+                  (requires {choice.requires.item.replace(/_/g, ' ').toLowerCase()})
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

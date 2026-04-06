@@ -18,20 +18,20 @@ export function generateSpawnPositions(roomPositions: Position[]): SpawnPosition
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const exit = randomFrom(all);
-    const keyPool = all.filter(p => getManhattanDistance(p, exit) >= 4 && !posEqual(p, exit));
+    const keyPool = all.filter(p => getManhattanDistance(p, exit) >= 5 && !posEqual(p, exit));
     if (keyPool.length === 0) continue;
     const key = randomFrom(keyPool);
 
     const beastPool = all.filter(
-      p => getManhattanDistance(p, exit) >= 3 && !posEqual(p, exit) && !posEqual(p, key),
+      p => getManhattanDistance(p, exit) >= 4 && !posEqual(p, exit) && !posEqual(p, key),
     );
     if (beastPool.length === 0) continue;
     const beast = randomFrom(beastPool);
 
     const playerPool = all.filter(
       p =>
-        getManhattanDistance(p, exit) >= 5 &&
-        getManhattanDistance(p, beast) >= 4 &&
+        getManhattanDistance(p, exit) >= 6 &&
+        getManhattanDistance(p, beast) >= 7 &&   // warden starts well away from player
         !posEqual(p, exit) &&
         !posEqual(p, key) &&
         !posEqual(p, beast),

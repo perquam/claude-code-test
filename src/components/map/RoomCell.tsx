@@ -17,9 +17,10 @@ interface RoomCellProps {
   room: Room;
   isPlayerHere: boolean;
   isExit: boolean;
+  isBeastHere: boolean;
 }
 
-const RoomCell = React.memo(function RoomCell({ room, isPlayerHere, isExit }: RoomCellProps) {
+const RoomCell = React.memo(function RoomCell({ room, isPlayerHere, isExit, isBeastHere }: RoomCellProps) {
   if (!room.hasRoom) {
     return <div className="room-cell void" />;
   }
@@ -50,6 +51,9 @@ const RoomCell = React.memo(function RoomCell({ room, isPlayerHere, isExit }: Ro
       )}
       {isPlayerHere && (
         <span className="player-marker">@</span>
+      )}
+      {isBeastHere && !isPlayerHere && (
+        <span className="player-marker" style={{ color: 'var(--color-blood)', fontSize: 12 }}>☠</span>
       )}
     </div>
   );
