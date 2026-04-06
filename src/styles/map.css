@@ -1,9 +1,7 @@
 .dungeon-map {
   display: grid;
-  grid-template-columns: repeat(14, 1fr);
-  grid-template-rows: repeat(14, 1fr);
-  gap: 1px;
-  padding: 12px;
+  gap: 0;
+  padding: 8px;
   background: var(--color-void);
   aspect-ratio: 1;
   width: 100%;
@@ -11,75 +9,87 @@
   position: relative;
 }
 
-.room-cell.void {
-  background: transparent;
-  border-color: transparent;
-  pointer-events: none;
+/* ── Base cell ── */
+.map-cell {
+  min-height: 0;
+  overflow: hidden;
 }
 
-.room-cell {
+/* ── Void / corner cells ── */
+.map-cell.void,
+.map-cell.corner {
+  background: transparent;
+}
+
+/* ── Room cells ── */
+.map-cell.room {
   position: relative;
-  background: var(--color-void);
-  border: 2px solid #1e1e32;
-  border-radius: 0;
+  aspect-ratio: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
-  transition: background 0.25s ease;
-  min-height: 0;
-  aspect-ratio: 1;
-  overflow: hidden;
+  font-size: 12px;
   user-select: none;
-}
-
-.room-cell[data-state="UNDISCOVERED"] {
   background: #0d0d1c;
-  border-color: #1e1e32;
+  border-radius: 1px;
 }
 
-.room-cell[data-state="VISITED"] {
+.map-cell.room[data-state="UNDISCOVERED"] {
+  background: #0d0d1c;
+}
+
+.map-cell.room[data-state="VISITED"] {
   background: var(--color-shadow);
-  border-color: #1e1e32;
 }
 
-.room-cell[data-state="VISITED"] .room-icon {
+.map-cell.room[data-state="VISITED"] .room-icon {
   filter: grayscale(0.9) brightness(0.4);
   opacity: 0.6;
 }
 
-.room-cell[data-state="CURRENT"] {
+.map-cell.room[data-state="CURRENT"] {
   background: var(--color-stone);
-  border-color: var(--color-torch-dim);
   box-shadow: 0 0 6px 1px rgba(200, 168, 75, 0.25);
 }
 
-/* Player marker */
-.room-cell .player-marker {
+.map-cell.room.is-exit[data-state="VISITED"],
+.map-cell.room.is-exit[data-state="CURRENT"] {
+  box-shadow: 0 0 6px 1px rgba(100, 220, 160, 0.3);
+}
+
+/* ── Corridor cells ── */
+.map-cell.corridor {
+  background: transparent;
+}
+
+.map-cell.corridor.open {
+  background: var(--color-shadow);
+}
+
+.map-cell.corridor.wall {
+  background: transparent;
+}
+
+/* ── Player marker ── */
+.map-cell .player-marker {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 14px;
   z-index: 2;
   pointer-events: none;
 }
 
-/* Exit marker */
-.room-cell.is-exit[data-state="VISITED"],
-.room-cell.is-exit[data-state="CURRENT"] {
-  border-color: var(--color-exit);
-}
-
-/* Room icon (event type) */
+/* ── Room icon (event type) ── */
 .room-icon {
-  font-size: 14px;
+  font-size: 12px;
   line-height: 1;
   pointer-events: none;
 }
 
-/* Beast hint arrow */
+/* ── Beast hint arrow (legacy, kept for BeastHint component) ── */
 .beast-hint-container {
   position: absolute;
   inset: 0;
