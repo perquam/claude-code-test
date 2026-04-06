@@ -3,6 +3,7 @@ import EventCard from './EventCard';
 import CombatActions from '../combat/CombatActions';
 import ItemList from './ItemList';
 import { ROOM_IMAGES } from '../../assets/rooms';
+import type { Room } from '../../types/room';
 
 const ROOM_TYPE_LABELS: Record<string, string> = {
   MERCHANT: 'Trading Post',
@@ -15,6 +16,12 @@ const ROOM_TYPE_LABELS: Record<string, string> = {
   EMPTY: 'Empty Chamber',
 };
 
+function getRoomImage(room: Room): string {
+  if (room.isExit) return ROOM_IMAGES.EXIT;
+  if (room.event) return ROOM_IMAGES[room.event.type] ?? ROOM_IMAGES.EMPTY;
+  return ROOM_IMAGES.EMPTY;
+}
+
 export default function RoomPanel() {
   const { state, currentRoom, canUseExit, dispatch } = useGame();
   const { phase, log, activeCombat } = state;
@@ -25,51 +32,38 @@ export default function RoomPanel() {
     ? (ROOM_TYPE_LABELS[currentRoom.event.type] ?? 'Room')
     : 'Chamber';
 
-  const roomImage = phase === 'EVENT' && state.activeEvent
-    ? (currentRoom.isExit ? ROOM_IMAGES.EXIT : ROOM_IMAGES[state.activeEvent.template.type])
-    : undefined;
+  // Image ALWAYS visible based on current room — never disappears
+  const roomImage = getRoomImage(currentRoom);
 
   return (
     <div style={{
       display: 'grid',
-      gridTemplateRows: roomImage ? 'auto 200px 1fr' : 'auto 1fr',
+      gridTemplateRows: '70% 1fr',
       overflow: 'hidden',
     }}>
-      {/* Row 1: Room label */}
+      {/* Top 70%: Room image — always visible, full image shown */}
       <div style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: 11,
-        color: 'var(--color-parchment-dim)',
-        textTransform: 'uppercase',
-        letterSpacing: '0.1em',
+        background: '#08080f',
         borderBottom: '1px solid var(--color-border)',
-        padding: '10px 16px 8px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
       }}>
-        {roomLabel}
-        {currentRoom.isExit && (
-          <span style={{ color: 'var(--color-exit)', marginLeft: 8 }}>⬡ EXIT</span>
-        )}
+        <img
+          src={roomImage}
+          alt={roomLabel}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            imageRendering: 'pixelated',
+            display: 'block',
+          }}
+        />
       </div>
 
-      {/* Row 2: Room image — exactly 200px, dark bg for transparent areas */}
-      {roomImage && (
-        <div style={{ background: '#08080f', borderBottom: '1px solid var(--color-border)' }}>
-          <img
-            src={roomImage}
-            alt={roomLabel}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              objectPosition: 'center',
-              imageRendering: 'pixelated',
-              display: 'block',
-            }}
-          />
-        </div>
-      )}
-
-      {/* Row 3: Scrollable content — plot, choices, combat, log */}
+      {/* Bottom 30%: Scrollable content — plot, choices, combat, log */}
       <div style={{ overflowY: 'auto' }}>
         {phase === 'EVENT' && state.activeEvent && (
           <EventCard event={state.activeEvent} player={state.player} />

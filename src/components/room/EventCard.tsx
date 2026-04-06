@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { ActiveEvent } from '../../types/room';
 import type { Player } from '../../types/player';
 import { useGame } from '../../store/useGame';
@@ -29,25 +29,69 @@ function stopSound() {
   }
 }
 
+/** Split text into tokens: each word and each whitespace chunk */
+function tokenize(text: string): string[] {
+  const tokens: string[] = [];
+  let i = 0;
+  while (i < text.length) {
+    if (text[i] === ' ' || text[i] === '\n') {
+      let j = i;
+      while (j < text.length && (text[j] === ' ' || text[j] === '\n')) j++;
+      tokens.push(text.slice(i, j));
+      i = j;
+    } else {
+      let j = i;
+      while (j < text.length && text[j] !== ' ' && text[j] !== '\n') j++;
+      tokens.push(text.slice(i, j));
+      i = j;
+    }
+  }
+  return tokens;
+}
+
 export default function EventCard({ event, player }: Props) {
   const { dispatch } = useGame();
   const { template } = event;
   const [displayedText, setDisplayedText] = useState('');
+  const cancelRef = useRef(false);
 
   useEffect(() => {
     setDisplayedText('');
-    let i = 0;
-    startSound();
-    const interval = setInterval(() => {
-      i++;
-      setDisplayedText(template.description.slice(0, i));
-      if (i >= template.description.length) {
-        clearInterval(interval);
-        stopSound();
+    cancelRef.current = false;
+    const tokens = tokenize(template.description);
+
+    let cancelled = false;
+    async function typeText() {
+      startSound();
+      let built = '';
+      for (const token of tokens) {
+        if (cancelled) break;
+        const isSpace = token[0] === ' ' || token[0] === '\n';
+        if (isSpace) {
+          // Append whitespace instantly
+          built += token;
+          setDisplayedText(built);
+        } else {
+          // Type each character of the word fast (25ms per char)
+          for (let c = 0; c < token.length; c++) {
+            if (cancelled) break;
+            built += token[c];
+            setDisplayedText(built);
+            await new Promise(r => setTimeout(r, 25));
+          }
+          // Random pause after word (200–500ms)
+          if (!cancelled) {
+            await new Promise(r => setTimeout(r, 200 + Math.random() * 300));
+          }
+        }
       }
-    }, 38);
+      if (!cancelled) stopSound();
+    }
+
+    typeText();
     return () => {
-      clearInterval(interval);
+      cancelled = true;
+      cancelRef.current = true;
       stopSound();
     };
   }, [template.description]);
