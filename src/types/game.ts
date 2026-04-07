@@ -8,6 +8,7 @@ export type GamePhase =
   | 'EVENT'
   | 'COMBAT'
   | 'INVENTORY'
+  | 'LEVEL_UP'
   | 'GAME_OVER'
   | 'VICTORY';
 
@@ -22,14 +23,22 @@ export interface LogEntry {
   type: 'narration' | 'combat' | 'item' | 'system';
 }
 
+export type EnemyBehavior = 'basic' | 'brute' | 'quick';
+
 export interface CombatState {
   enemyId: string;
   enemyStats: Stats;
   enemyName: string;
+  enemyBehavior: EnemyBehavior;
   playerTurn: boolean;
   round: number;
   log: string[];
   canFlee: boolean;
+  playerDefending: boolean;
+  playerHeavyPenalty: boolean;
+  enemyCharging: boolean;
+  riposteReady: boolean;
+  secondWindUsed: boolean; // tracks if Second Wind was already used this combat
 }
 
 export interface GameState {
@@ -43,4 +52,6 @@ export interface GameState {
   activeEvent: ActiveEvent | null;
   activeCombat: CombatState | null;
   movedThisTurn: boolean;
+  pendingLevelUp: boolean;
+  phaseBeforeLevelUp: GamePhase | null;
 }

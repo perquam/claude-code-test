@@ -16,6 +16,7 @@ export const ROOM_IMAGES: Record<string, string> = {
   SHRINE: roomShrine,
   MERCHANT: roomMerchant,
   TREASURE: roomVault,
+  MORAL_DILEMMA: roomPrison,
   EMPTY: roomChamber,
   EXIT: roomExit,
 };

@@ -1,6 +1,7 @@
 import { useGame } from '../../store/useGame';
 import EventCard from './EventCard';
 import CombatActions from '../combat/CombatActions';
+import LevelUpScreen from '../player/LevelUpScreen';
 import ItemList from './ItemList';
 import { ROOM_IMAGES } from '../../assets/rooms';
 import type { Room } from '../../types/room';
@@ -14,6 +15,7 @@ const ROOM_TYPE_LABELS: Record<string, string> = {
   TREASURE: 'Discovery',
   LORE: 'Discovery',
   EMPTY: 'Empty Chamber',
+  MORAL_DILEMMA: 'Moral Choice',
 };
 
 function getRoomImage(room: Room): string {
@@ -73,6 +75,10 @@ export default function RoomPanel() {
           <div style={{ padding: '12px 16px' }}>
             <CombatActions combat={activeCombat} />
           </div>
+        )}
+
+        {phase === 'LEVEL_UP' && (
+          <LevelUpScreen />
         )}
 
         {phase === 'EXPLORING' && canUseExit && (

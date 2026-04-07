@@ -193,6 +193,7 @@ export function createInitialGameState(): GameState {
       maxHp: 30,
       attack: 5,
       defense: 2,
+      critBonus: 0,
       level: 1,
       xp: 0,
       xpToNextLevel: 30,
@@ -201,6 +202,8 @@ export function createInitialGameState(): GameState {
     equippedWeapon: null,
     equippedArmor: null,
     hasKey: false,
+    buffs: [],
+    abilities: [],
   };
 
   const beast: Beast = {
@@ -227,5 +230,7 @@ export function createInitialGameState(): GameState {
     },
     activeCombat: null,
     movedThisTurn: false,
+    pendingLevelUp: false,
+    phaseBeforeLevelUp: null,
   };
 }

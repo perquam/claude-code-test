@@ -110,6 +110,45 @@ export function bfs(from: Position, to: Position, blocked: Position[] = []): Pos
   return [];
 }
 
+/** Find a safe flee destination >= minDist Manhattan distance from dangerPos */
+export function findFleeDestination(
+  grid: Room[][],
+  playerPos: Position,
+  dangerPos: Position,
+  minDist = 3,
+): Position {
+  // BFS from player to find all reachable rooms
+  const visited = new Map<string, Position>();
+  const queue: Position[] = [playerPos];
+  visited.set(posKey(playerPos), playerPos);
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    const room = grid[current.row][current.col];
+    for (const dir of room.connections) {
+      const neighbor = dirToPos(current, dir);
+      if (!isValid(neighbor) || !grid[neighbor.row][neighbor.col].hasRoom) continue;
+      const key = posKey(neighbor);
+      if (visited.has(key)) continue;
+      visited.set(key, neighbor);
+      queue.push(neighbor);
+    }
+  }
+
+  // Filter for rooms far enough from danger
+  const candidates = [...visited.values()].filter(
+    p => getManhattanDistance(p, dangerPos) >= minDist,
+  );
+  if (candidates.length > 0) {
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }
+  // Fallback: any room that isn't the danger position
+  const fallback = [...visited.values()].filter(p => !posEqual(p, dangerPos));
+  return fallback.length > 0
+    ? fallback[Math.floor(Math.random() * fallback.length)]
+    : playerPos;
+}
+
 /** All positions in the grid as a flat array */
 export function allPositions(): Position[] {
   const out: Position[] = [];

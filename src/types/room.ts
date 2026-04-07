@@ -11,7 +11,8 @@ export type EventType =
   | 'MONSTER'
   | 'TREASURE'
   | 'EMPTY'
-  | 'LORE';
+  | 'LORE'
+  | 'MORAL_DILEMMA';
 
 export interface EventOutcome {
   description: string;
@@ -21,6 +22,7 @@ export interface EventOutcome {
   itemsLost?: ItemType[];
   statModifier?: { attack?: number; defense?: number; maxHp?: number };
   combatTrigger?: string; // monster ID if this choice starts combat
+  buffGained?: { type: 'ATTACK' | 'DEFENSE' | 'POISON'; value: number; turnsRemaining: number };
 }
 
 export interface EventChoice {
