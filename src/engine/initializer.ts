@@ -208,6 +208,7 @@ export function createInitialGameState(): GameState {
     stats: { ...BEAST_BASE_STATS },
     isDefeated: false,
     pathToPlayer: [],
+    isTracking: false,
   };
 
   return {
@@ -225,5 +226,6 @@ export function createInitialGameState(): GameState {
       outcomeText: null,
     },
     activeCombat: null,
+    movedThisTurn: false,
   };
 }

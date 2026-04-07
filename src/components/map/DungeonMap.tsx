@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGame } from '../../store/useGame';
-import { GRID_SIZE } from '../../engine/grid';
+import { GRID_SIZE, CARDINAL_DELTAS } from '../../engine/grid';
 import type { Room } from '../../types/room';
 import '../../styles/map.css';
 
@@ -23,11 +23,15 @@ const RoomCell = React.memo(function RoomCell({
   isPlayerHere,
   isExit,
   isBeastHere,
+  isAvailableMove,
+  onMoveClick,
 }: {
   room: Room;
   isPlayerHere: boolean;
   isExit: boolean;
   isBeastHere: boolean;
+  isAvailableMove?: boolean;
+  onMoveClick?: () => void;
 }) {
   if (!room.hasRoom) return <div className="map-cell void" />;
 
@@ -39,10 +43,14 @@ const RoomCell = React.memo(function RoomCell({
 
   return (
     <div
-      className={`map-cell room${isExit ? ' is-exit' : ''}`}
+      className={`map-cell room${isExit ? ' is-exit' : ''}${isAvailableMove ? ' available-move' : ''}`}
       data-state={state}
+      onClick={onMoveClick}
+      style={{ cursor: isAvailableMove ? 'pointer' : undefined }}
       title={
-        state === 'UNDISCOVERED'
+        isAvailableMove
+          ? 'Click to move here'
+          : state === 'UNDISCOVERED'
           ? '???'
           : room.isExit
           ? 'EXIT'
@@ -92,8 +100,20 @@ function isConnected(room: Room, dir: 'N' | 'S' | 'E' | 'W'): boolean {
 }
 
 export default function DungeonMap() {
-  const { state, beastHint } = useGame();
+  const { state, beastHint, dispatch } = useGame();
   const { grid, player, exitPosition } = state;
+
+  // Compute available move targets from current room
+  const availableMoves = new Map<string, 'N' | 'S' | 'E' | 'W'>();
+  if (state.phase === 'EXPLORING' && !state.movedThisTurn) {
+    const currentRoom = grid[player.position.row][player.position.col];
+    for (const dir of currentRoom.connections) {
+      const delta = CARDINAL_DELTAS[dir];
+      const targetRow = player.position.row + delta.row;
+      const targetCol = player.position.col + delta.col;
+      availableMoves.set(`${targetRow},${targetCol}`, dir as 'N' | 'S' | 'E' | 'W');
+    }
+  }
 
   const cells: React.ReactNode[] = [];
 
@@ -108,6 +128,7 @@ export default function DungeonMap() {
         const r = dr / 2;
         const c = dc / 2;
         const room = grid[r][c];
+        const moveDir = availableMoves.get(`${r},${c}`);
         cells.push(
           <RoomCell
             key={key}
@@ -119,6 +140,8 @@ export default function DungeonMap() {
               r === state.beast.position.row &&
               c === state.beast.position.col
             }
+            isAvailableMove={!!moveDir}
+            onMoveClick={moveDir ? () => dispatch({ type: 'MOVE', direction: moveDir }) : undefined}
           />,
         );
       } else if (isRoomRow && !isRoomCol) {
@@ -178,19 +201,45 @@ export default function DungeonMap() {
             paddingLeft: 12,
           }}
         >
-          The Warden stirs {beastHint.direction} ({beastHint.distance} rooms away)
+          {beastHint.label}
         </div>
       )}
       <div
         style={{
-          marginTop: 4,
-          fontSize: 11,
-          color: 'var(--color-parchment-dim)',
-          fontFamily: 'var(--font-mono)',
+          marginTop: 8,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
           paddingLeft: 12,
         }}
       >
-        WASD / Arrow keys to move
+        {state.phase === 'EXPLORING' && (
+          <button
+            onClick={() => dispatch({ type: 'END_TURN' })}
+            style={{
+              background: 'var(--color-torch)',
+              color: '#000',
+              border: 'none',
+              borderRadius: 4,
+              padding: '6px 14px',
+              fontWeight: 'bold',
+              fontSize: 12,
+              fontFamily: 'var(--font-mono)',
+              cursor: 'pointer',
+            }}
+          >
+            End Turn
+          </button>
+        )}
+        <span
+          style={{
+            fontSize: 11,
+            color: 'var(--color-parchment-dim)',
+            fontFamily: 'var(--font-mono)',
+          }}
+        >
+          Click adjacent rooms to move
+        </span>
       </div>
     </div>
   );

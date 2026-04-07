@@ -111,3 +111,20 @@
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.45; transform: scale(0.8); }
 }
+
+/* ── Available move targets ── */
+.map-cell.room.available-move {
+  box-shadow: 0 0 6px 2px rgba(200, 168, 75, 0.35);
+  animation: movePulse 2s ease-in-out infinite;
+  cursor: pointer;
+}
+
+.map-cell.room.available-move:hover {
+  box-shadow: 0 0 10px 3px rgba(200, 168, 75, 0.6);
+  background: var(--color-stone) !important;
+}
+
+@keyframes movePulse {
+  0%, 100% { box-shadow: 0 0 6px 2px rgba(200, 168, 75, 0.35); }
+  50% { box-shadow: 0 0 3px 1px rgba(200, 168, 75, 0.15); }
+}

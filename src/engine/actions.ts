@@ -16,6 +16,7 @@ export type PlayerAction =
   | { type: 'EQUIP_ITEM'; itemId: string }
   | { type: 'PICKUP_LOOT'; itemId: string }
   | { type: 'USE_EXIT' }
+  | { type: 'END_TURN' }
   | { type: 'RESTART' };
 
 function sysLog(turn: number, message: string): LogEntry {
@@ -60,6 +61,7 @@ export function processPlayerAction(state: GameState, action: PlayerAction): Gam
   switch (action.type) {
     case 'MOVE': {
       if (state.phase !== 'EXPLORING') return state;
+      if (state.movedThisTurn) return state; // one move per turn
       const currentRoom = state.grid[state.player.position.row][state.player.position.col];
       if (!currentRoom.connections.includes(action.direction)) return state; // wall
       const delta = DIRECTION_DELTA[action.direction];
@@ -72,6 +74,7 @@ export function processPlayerAction(state: GameState, action: PlayerAction): Gam
       const oldPos = state.player.position;
       let next: GameState = {
         ...state,
+        movedThisTurn: true,
         player: { ...state.player, position: newPos },
         grid: applyFogTransition(state.grid, oldPos, newPos),
       };
@@ -80,22 +83,15 @@ export function processPlayerAction(state: GameState, action: PlayerAction): Gam
       const newRoom = next.grid[newPos.row][newPos.col];
       if (newRoom.event && !newRoom.eventResolved) {
         next = triggerRoomEvent(next);
-        // Events phase — beast does NOT move yet (player is busy with event)
         return next;
       }
 
-      // Advance turn (beast moves)
-      next = advanceTurn(next);
       return next;
     }
 
     case 'CHOOSE_EVENT': {
       if (state.phase !== 'EVENT' || !state.activeEvent) return state;
-      let next = resolveEventChoice(state, action.choiceId);
-      // Only advance turn if we're back to exploring (not entering combat)
-      if (next.phase === 'EXPLORING') {
-        next = advanceTurn(next);
-      }
+      const next = resolveEventChoice(state, action.choiceId);
       return next;
     }
 
@@ -118,8 +114,14 @@ export function processPlayerAction(state: GameState, action: PlayerAction): Gam
 
     case 'PICKUP_LOOT': {
       if (state.phase !== 'EXPLORING') return state;
-      let next = pickupLoot(state, action.itemId);
-      next = advanceTurn(next);
+      const next = pickupLoot(state, action.itemId);
+      return next;
+    }
+
+    case 'END_TURN': {
+      if (state.phase !== 'EXPLORING') return state;
+      let next = advanceTurn(state);
+      next = { ...next, movedThisTurn: false };
       return next;
     }
 
