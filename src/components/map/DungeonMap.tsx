@@ -14,6 +14,7 @@ const EVENT_ICONS: Record<string, string> = {
   MONSTER: '☠',
   TREASURE: '◈',
   LORE: '📜',
+  WIZARD: '🧙',
   EMPTY: '',
 };
 

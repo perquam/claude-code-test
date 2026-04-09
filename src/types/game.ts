@@ -9,6 +9,7 @@ export type GamePhase =
   | 'COMBAT'
   | 'INVENTORY'
   | 'LEVEL_UP'
+  | 'MAGIC_BOOK'
   | 'GAME_OVER'
   | 'VICTORY';
 

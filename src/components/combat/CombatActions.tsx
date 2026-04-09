@@ -1,13 +1,19 @@
+import { useState } from 'react';
 import type { CombatState } from '../../types/game';
 import { useGame } from '../../store/useGame';
 import { getPlayerAttack, getPlayerDefense } from '../../engine/combat';
+import { SPELL_DEFINITIONS } from '../../data/spells';
+import { canCastSpell } from '../../engine/spells';
+import StatBar from '../player/StatBar';
 
 export default function CombatActions({ combat }: { combat: CombatState }) {
   const { dispatch, state } = useGame();
+  const [showSpells, setShowSpells] = useState(false);
 
   const hpPct = Math.max(0, (combat.enemyStats.hp / combat.enemyStats.maxHp) * 100);
   const playerAttack = getPlayerAttack(state.player);
   const playerDefense = getPlayerDefense(state.player);
+  const hasSpells = state.player.hasMagicBook && state.player.spells.length > 0;
 
   return (
     <div style={{
@@ -27,7 +33,7 @@ export default function CombatActions({ combat }: { combat: CombatState }) {
       </h3>
 
       {/* Enemy HP */}
-      <div style={{ marginBottom: 12 }}>
+      <div style={{ marginBottom: 8 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
           <span style={{ color: 'var(--color-parchment)' }}>{combat.enemyName}</span>
           <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-parchment-dim)' }}>
@@ -43,6 +49,14 @@ export default function CombatActions({ combat }: { combat: CombatState }) {
             transition: 'width 0.3s',
           }} />
         </div>
+      </div>
+
+      {/* Player HP + Mana bars */}
+      <div style={{ marginBottom: 8 }}>
+        <StatBar value={state.player.stats.hp} max={state.player.stats.maxHp} color="var(--color-blood)" label="HP" />
+        {state.player.stats.maxMana > 0 && (
+          <StatBar value={state.player.stats.mana} max={state.player.stats.maxMana} color="#3355dd" label="MP" />
+        )}
       </div>
 
       {/* Enemy state indicator */}
@@ -105,8 +119,80 @@ export default function CombatActions({ combat }: { combat: CombatState }) {
         ))}
       </div>
 
-      {/* Actions — 2x2 grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+      {/* Spell picker overlay */}
+      {showSpells && (
+        <div style={{
+          background: 'var(--color-void)',
+          border: '1px solid #3355dd',
+          borderRadius: 4,
+          padding: '8px',
+          marginBottom: 8,
+        }}>
+          <div style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 10,
+            color: '#88aaff',
+            textTransform: 'uppercase',
+            marginBottom: 6,
+          }}>
+            Cast a Spell
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {state.player.spells.map(s => {
+              const def = SPELL_DEFINITIONS[s.id];
+              if (!def) return null;
+              const canCast = canCastSpell(state.player, def);
+              return (
+                <button
+                  key={s.id}
+                  disabled={!canCast}
+                  onClick={() => {
+                    dispatch({ type: 'CAST_SPELL', spellId: s.id });
+                    setShowSpells(false);
+                  }}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    background: canCast ? 'var(--color-shadow-mid)' : 'var(--color-void)',
+                    border: `1px solid ${canCast ? '#3355dd' : 'var(--color-border)'}`,
+                    borderRadius: 3,
+                    padding: '4px 8px',
+                    cursor: canCast ? 'pointer' : 'not-allowed',
+                    opacity: canCast ? 1 : 0.5,
+                    color: 'var(--color-parchment)',
+                    fontSize: 11,
+                  }}
+                >
+                  <span>{def.icon} {def.name}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#3355dd' }}>
+                    {def.manaCost} MP
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <button
+            onClick={() => setShowSpells(false)}
+            style={{
+              marginTop: 6,
+              background: 'transparent',
+              color: 'var(--color-parchment-dim)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 3,
+              padding: '3px 8px',
+              fontSize: 10,
+              cursor: 'pointer',
+              width: '100%',
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {/* Actions grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: hasSpells ? '1fr 1fr 1fr' : '1fr 1fr', gap: 8 }}>
         <button
           onClick={() => dispatch({ type: 'COMBAT_ACTION', action: 'ATTACK' })}
           style={{
@@ -135,8 +221,25 @@ export default function CombatActions({ combat }: { combat: CombatState }) {
             cursor: 'pointer',
           }}
         >
-          Heavy Attack
+          Heavy
         </button>
+        {hasSpells && (
+          <button
+            onClick={() => setShowSpells(!showSpells)}
+            style={{
+              background: '#1a3a6e',
+              color: '#88aaff',
+              border: '1px solid #3355dd',
+              borderRadius: 3,
+              padding: '8px',
+              fontSize: 13,
+              fontWeight: 'bold',
+              cursor: 'pointer',
+            }}
+          >
+            Cast
+          </button>
+        )}
         <button
           onClick={() => dispatch({ type: 'COMBAT_ACTION', action: 'DEFEND' })}
           style={{

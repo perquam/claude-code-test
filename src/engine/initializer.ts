@@ -10,6 +10,7 @@ import { EVENT_POOL } from '../data/events';
 import { ITEM_DEFINITIONS } from '../data/items';
 import type { Item, ItemType } from '../types/item';
 import type { Direction, Position } from '../types/game';
+import { createInitialSkills } from './skills';
 
 function makeItem(type: ItemType): Item {
   return { ...ITEM_DEFINITIONS[type], id: uuid() };
@@ -113,7 +114,11 @@ function generateDungeonGraph(): Room[][] {
 
 /** Assign events, exit marker, and key loot to actual room cells. */
 function distributeEvents(grid: Room[][], exitPos: Position, keyPos: Position): void {
-  const lootOptions: ItemType[] = ['GOLD', 'POTION_HEALTH_SMALL', 'WEAPON_DAGGER', 'ARMOR_LEATHER'];
+  const lootOptions: ItemType[] = ['GOLD', 'POTION_HEALTH_SMALL', 'WEAPON_DAGGER', 'ARMOR_LEATHER', 'POTION_MANA'];
+
+  // Find the WIZARD_TOWER event to guarantee placement
+  const wizardEvent = EVENT_POOL.find(e => e.id === 'WIZARD_TOWER');
+  let wizardPlaced = false;
 
   for (let row = 0; row < GRID_SIZE; row++) {
     for (let col = 0; col < GRID_SIZE; col++) {
@@ -144,6 +149,26 @@ function distributeEvents(grid: Room[][], exitPos: Position, keyPos: Position): 
   if (!keyRoom.loot.some(i => i.type === 'KEY')) {
     keyRoom.loot.push(makeItem('KEY'));
     keyRoom.event = null;
+  }
+
+  // Guarantee wizard event is placed in some room
+  if (wizardEvent) {
+    const rooms = grid.flat().filter(r =>
+      r.hasRoom && !r.isExit && !r.event && r.loot.length === 0 && !posEqual(r.position, keyPos)
+    );
+    if (rooms.length > 0) {
+      const wizRoom = rooms[Math.floor(Math.random() * rooms.length)];
+      wizRoom.event = { ...wizardEvent };
+      wizardPlaced = true;
+    }
+    // If no empty room, replace a random event
+    if (!wizardPlaced) {
+      const eventRooms = grid.flat().filter(r => r.hasRoom && r.event && r.event.id !== 'DUNGEON_ENTRANCE');
+      if (eventRooms.length > 0) {
+        const target = eventRooms[Math.floor(Math.random() * eventRooms.length)];
+        target.event = { ...wizardEvent };
+      }
+    }
   }
 }
 
@@ -193,7 +218,9 @@ export function createInitialGameState(): GameState {
       maxHp: 30,
       attack: 5,
       defense: 2,
-      critBonus: 0,
+      mana: 0,
+      maxMana: 10,
+      gold: 0,
       level: 1,
       xp: 0,
       xpToNextLevel: 30,
@@ -203,7 +230,10 @@ export function createInitialGameState(): GameState {
     equippedArmor: null,
     hasKey: false,
     buffs: [],
-    abilities: [],
+    skills: createInitialSkills(),
+    spells: [],
+    hasMagicBook: false,
+    staminaCooldown: 0,
   };
 
   const beast: Beast = {

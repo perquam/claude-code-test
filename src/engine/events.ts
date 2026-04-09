@@ -59,6 +59,9 @@ export function resolveEventChoice(state: GameState, choiceId: string): GameStat
     if (req.item && !state.player.inventory.some(i => i.type === req.item)) return state;
     if (req.minLevel && state.player.stats.level < req.minLevel) return state;
     if (req.minHp && state.player.stats.hp < req.minHp) return state;
+    if (req.minWisdom !== undefined && state.player.skills.WISDOM < req.minWisdom) return state;
+    if (req.hasMagicBook && !state.player.hasMagicBook) return state;
+    if (req.minGold !== undefined && state.player.stats.gold < req.minGold) return state;
   }
 
   const outcome = choice.outcome;
@@ -121,6 +124,28 @@ export function resolveEventChoice(state: GameState, choiceId: string): GameStat
     player = { ...player, buffs: [...player.buffs, { ...outcome.buffGained }] };
   }
 
+  // Magic book granted
+  if (outcome.magicBookGranted) {
+    player = { ...player, hasMagicBook: true };
+    newLog.push(log(state.turn, 'You obtained the Tome of Arcana! You can now learn and cast spells.', 'item'));
+  }
+
+  // Gold delta
+  if (outcome.goldDelta) {
+    player = { ...player, stats: { ...player.stats, gold: Math.max(0, player.stats.gold + outcome.goldDelta) } };
+    if (outcome.goldDelta > 0) {
+      newLog.push(log(state.turn, `+${outcome.goldDelta} gold.`, 'item'));
+    }
+  }
+
+  // Spell granted
+  if (outcome.spellGranted) {
+    if (player.hasMagicBook && player.spells.length < 5 && !player.spells.some(s => s.id === outcome.spellGranted)) {
+      player = { ...player, spells: [...player.spells, { id: outcome.spellGranted! }] };
+      newLog.push(log(state.turn, `You learned a new spell!`, 'item'));
+    }
+  }
+
   // Mark room event as resolved
   const grid = state.grid.map(row =>
     row.map(room =>
@@ -150,19 +175,17 @@ export function resolveEventChoice(state: GameState, choiceId: string): GameStat
     return nextState;
   }
 
-  // Check level up
+  // Check level up — every level triggers skill selection
   const levelResult = checkLevelUp(player);
   if (levelResult.leveledUp) {
-    nextState = { ...nextState, player: levelResult.player };
-    if (levelResult.player.stats.level >= 2 && levelResult.player.stats.level <= 4) {
-      return {
-        ...nextState,
-        phase: 'LEVEL_UP',
-        activeEvent: null,
-        pendingLevelUp: true,
-        phaseBeforeLevelUp: 'EXPLORING',
-      };
-    }
+    return {
+      ...nextState,
+      player: levelResult.player,
+      phase: 'LEVEL_UP',
+      activeEvent: null,
+      pendingLevelUp: true,
+      phaseBeforeLevelUp: 'EXPLORING',
+    };
   }
 
   return { ...nextState, phase: 'EXPLORING', activeEvent: null };

@@ -12,6 +12,7 @@ export const ITEM_DEFINITIONS: Record<ItemType, ItemDefinition> = {
     stats: { attackBonus: 2, critChance: 0.15 } as WeaponStats,
     consumable: false,
     value: 10,
+    rarity: 'COMMON',
   },
   WEAPON_SWORD: {
     type: 'WEAPON_SWORD',
@@ -21,6 +22,7 @@ export const ITEM_DEFINITIONS: Record<ItemType, ItemDefinition> = {
     stats: { attackBonus: 5, critChance: 0.1 } as WeaponStats,
     consumable: false,
     value: 30,
+    rarity: 'UNCOMMON',
   },
   WEAPON_AXE: {
     type: 'WEAPON_AXE',
@@ -30,6 +32,7 @@ export const ITEM_DEFINITIONS: Record<ItemType, ItemDefinition> = {
     stats: { attackBonus: 8, critChance: 0.05 } as WeaponStats,
     consumable: false,
     value: 50,
+    rarity: 'UNCOMMON',
   },
   WEAPON_CURSED_BLADE: {
     type: 'WEAPON_CURSED_BLADE',
@@ -39,6 +42,29 @@ export const ITEM_DEFINITIONS: Record<ItemType, ItemDefinition> = {
     stats: { attackBonus: 10, critChance: 0.2, hpDrainPerTurn: 2 } as WeaponStats,
     consumable: false,
     value: 60,
+    rarity: 'RARE',
+  },
+  WEAPON_ARCANE_WAND: {
+    type: 'WEAPON_ARCANE_WAND',
+    name: 'Arcane Wand',
+    icon: '\u{1FA84}',
+    description: 'A wand thrumming with ancient power. It awakens the magical talent within you.',
+    stats: { attackBonus: 6, critChance: 0.12 } as WeaponStats,
+    consumable: false,
+    value: 120,
+    rarity: 'LEGENDARY',
+    legendaryBonus: { skillGrant: { skill: 'MAGICAL_POWER', tier: 2 } },
+  },
+  WEAPON_SOULREAPER: {
+    type: 'WEAPON_SOULREAPER',
+    name: 'Soulreaper Blade',
+    icon: '\u{26B0}\u{FE0F}',
+    description: 'A blade forged in the space between life and death. It feeds on the souls of the fallen.',
+    stats: { attackBonus: 12, critChance: 0.15 } as WeaponStats,
+    consumable: false,
+    value: 200,
+    rarity: 'LEGENDARY',
+    legendaryBonus: { skillGrant: { skill: 'OFFENSE', tier: 1 } },
   },
   ARMOR_LEATHER: {
     type: 'ARMOR_LEATHER',
@@ -48,6 +74,7 @@ export const ITEM_DEFINITIONS: Record<ItemType, ItemDefinition> = {
     stats: { defenseBonus: 2, damageReduction: 1 } as ArmorStats,
     consumable: false,
     value: 15,
+    rarity: 'COMMON',
   },
   ARMOR_CHAINMAIL: {
     type: 'ARMOR_CHAINMAIL',
@@ -57,6 +84,7 @@ export const ITEM_DEFINITIONS: Record<ItemType, ItemDefinition> = {
     stats: { defenseBonus: 5, damageReduction: 2 } as ArmorStats,
     consumable: false,
     value: 45,
+    rarity: 'UNCOMMON',
   },
   ARMOR_PLATE: {
     type: 'ARMOR_PLATE',
@@ -66,6 +94,18 @@ export const ITEM_DEFINITIONS: Record<ItemType, ItemDefinition> = {
     stats: { defenseBonus: 9, damageReduction: 4 } as ArmorStats,
     consumable: false,
     value: 100,
+    rarity: 'RARE',
+  },
+  ARMOR_ARCHMAGE_ROBE: {
+    type: 'ARMOR_ARCHMAGE_ROBE',
+    name: "Archmage's Robe",
+    icon: '\u{1F9D9}',
+    description: 'Robes woven with threads of pure mana. They whisper forgotten knowledge to the wearer.',
+    stats: { defenseBonus: 4, damageReduction: 1 } as ArmorStats,
+    consumable: false,
+    value: 150,
+    rarity: 'LEGENDARY',
+    legendaryBonus: { skillGrant: { skill: 'WISDOM', tier: 2 } },
   },
   POTION_HEALTH_SMALL: {
     type: 'POTION_HEALTH_SMALL',
@@ -74,6 +114,7 @@ export const ITEM_DEFINITIONS: Record<ItemType, ItemDefinition> = {
     description: 'A vial of red liquid. Smells faintly of copper.',
     consumable: true,
     value: 8,
+    rarity: 'COMMON',
   },
   POTION_HEALTH_LARGE: {
     type: 'POTION_HEALTH_LARGE',
@@ -82,6 +123,7 @@ export const ITEM_DEFINITIONS: Record<ItemType, ItemDefinition> = {
     description: "A proper healing draft. A merchant's best seller.",
     consumable: true,
     value: 20,
+    rarity: 'COMMON',
   },
   POTION_STRENGTH: {
     type: 'POTION_STRENGTH',
@@ -90,6 +132,7 @@ export const ITEM_DEFINITIONS: Record<ItemType, ItemDefinition> = {
     description: 'Liquid fury. Your arms burn with unnatural power for a short time.',
     consumable: true,
     value: 25,
+    rarity: 'UNCOMMON',
   },
   POTION_IRON_SKIN: {
     type: 'POTION_IRON_SKIN',
@@ -98,6 +141,7 @@ export const ITEM_DEFINITIONS: Record<ItemType, ItemDefinition> = {
     description: 'Your skin hardens like tempered steel. The effect is temporary.',
     consumable: true,
     value: 25,
+    rarity: 'UNCOMMON',
   },
   POTION_ANTIDOTE: {
     type: 'POTION_ANTIDOTE',
@@ -106,6 +150,16 @@ export const ITEM_DEFINITIONS: Record<ItemType, ItemDefinition> = {
     description: 'A bitter tincture that purges poison and curses from the body.',
     consumable: true,
     value: 15,
+    rarity: 'COMMON',
+  },
+  POTION_MANA: {
+    type: 'POTION_MANA',
+    name: 'Mana Potion',
+    icon: '\u{1F4A7}',
+    description: 'A shimmering blue liquid. Restores your magical reserves.',
+    consumable: true,
+    value: 20,
+    rarity: 'UNCOMMON',
   },
   KEY: {
     type: 'KEY',
@@ -113,7 +167,8 @@ export const ITEM_DEFINITIONS: Record<ItemType, ItemDefinition> = {
     icon: '\u{1F5DD}\u{FE0F}',
     description: 'Heavy and ornate. You feel certain this unlocks the way out.',
     consumable: false,
-    value: 0, // priceless
+    value: 0,
+    rarity: 'RARE',
   },
   GOLD: {
     type: 'GOLD',
@@ -122,6 +177,7 @@ export const ITEM_DEFINITIONS: Record<ItemType, ItemDefinition> = {
     description: 'Currency of the surface world. Useful with merchants.',
     consumable: false,
     value: 1,
+    rarity: 'COMMON',
   },
   RELIC: {
     type: 'RELIC',
@@ -130,6 +186,7 @@ export const ITEM_DEFINITIONS: Record<ItemType, ItemDefinition> = {
     description: "A carved stone artifact. Its purpose is unclear, but it hums faintly.",
     consumable: false,
     value: 75,
+    rarity: 'RARE',
   },
   SCROLL_IDENTIFY: {
     type: 'SCROLL_IDENTIFY',
@@ -138,6 +195,7 @@ export const ITEM_DEFINITIONS: Record<ItemType, ItemDefinition> = {
     description: 'Reading it reveals the properties of an unknown item.',
     consumable: true,
     value: 12,
+    rarity: 'COMMON',
   },
   TRAP_DISARM_KIT: {
     type: 'TRAP_DISARM_KIT',
@@ -146,6 +204,35 @@ export const ITEM_DEFINITIONS: Record<ItemType, ItemDefinition> = {
     description: 'Picks, wire, and a small knife. Useful when the floor looks suspicious.',
     consumable: true,
     value: 18,
+    rarity: 'COMMON',
+  },
+  MAGIC_BOOK: {
+    type: 'MAGIC_BOOK',
+    name: 'Tome of Arcana',
+    icon: '\u{1F4D5}',
+    description: 'An ancient spellbook bound in dark leather. Its pages shimmer with arcane symbols.',
+    consumable: false,
+    value: 0,
+    rarity: 'RARE',
+  },
+  SPELL_SCROLL: {
+    type: 'SPELL_SCROLL',
+    name: 'Spell Scroll',
+    icon: '\u{1F4DC}',
+    description: 'A scroll containing a magical incantation that can be learned.',
+    consumable: true,
+    value: 30,
+    rarity: 'UNCOMMON',
+  },
+  CROWN_OF_KINGS: {
+    type: 'CROWN_OF_KINGS',
+    name: 'Crown of Kings',
+    icon: '\u{1F451}',
+    description: 'A crown worn by ancient rulers. Its power bolsters both body and spirit.',
+    consumable: false,
+    value: 250,
+    rarity: 'LEGENDARY',
+    legendaryBonus: { skillGrant: { skill: 'OFFENSE', tier: 1 } },
   },
 };
 
@@ -153,3 +240,5 @@ export const POTION_HEAL: Partial<Record<ItemType, number>> = {
   POTION_HEALTH_SMALL: 15,
   POTION_HEALTH_LARGE: 35,
 };
+
+export const MANA_POTION_RESTORE = 15;

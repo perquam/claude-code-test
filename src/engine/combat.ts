@@ -8,6 +8,7 @@ import type { Item } from '../types/item';
 import { ITEM_DEFINITIONS } from '../data/items';
 import { findFleeDestination } from './grid';
 import { applyFogTransition } from './fog';
+import { getOffenseBonus, getDefenseBonus } from '../data/skills';
 
 function clampHp(stats: Stats): Stats {
   return { ...stats, hp: Math.max(0, Math.min(stats.hp, stats.maxHp)) };
@@ -35,7 +36,8 @@ export function getPlayerAttack(player: Player): number {
   const buffBonus = player.buffs
     .filter(b => b.type === 'ATTACK')
     .reduce((sum, b) => sum + b.value, 0);
-  return player.stats.attack + weaponBonus + buffBonus;
+  const skillBonus = getOffenseBonus(player.skills.OFFENSE);
+  return player.stats.attack + weaponBonus + buffBonus + skillBonus;
 }
 
 export function getPlayerDefense(player: Player): number {
@@ -46,7 +48,8 @@ export function getPlayerDefense(player: Player): number {
   const buffBonus = player.buffs
     .filter(b => b.type === 'DEFENSE')
     .reduce((sum, b) => sum + b.value, 0);
-  return player.stats.defense + armorBonus + buffBonus;
+  const skillBonus = getDefenseBonus(player.skills.DEFENSE);
+  return player.stats.defense + armorBonus + buffBonus + skillBonus;
 }
 
 export function getPlayerCritChance(player: Player): number {
@@ -54,16 +57,16 @@ export function getPlayerCritChance(player: Player): number {
     player.equippedWeapon?.stats && 'critChance' in player.equippedWeapon.stats
       ? (player.equippedWeapon.stats as { critChance: number }).critChance
       : 0;
-  return weaponCrit + player.stats.critBonus;
+  return weaponCrit;
 }
 
 export function checkLevelUp(player: Player): { player: Player; leveledUp: boolean } {
   if (player.stats.xp < player.stats.xpToNextLevel) return { player, leveledUp: false };
   const newLevel = player.stats.level + 1;
-  // Base stat gains (smaller now since skills add power)
   const hpGain = 5;
   const attackGain = 1;
   const defenseGain = 1;
+  const manaGain = 3;
   return {
     player: {
       ...player,
@@ -76,6 +79,8 @@ export function checkLevelUp(player: Player): { player: Player; leveledUp: boole
         hp: player.stats.hp + hpGain,
         attack: player.stats.attack + attackGain,
         defense: player.stats.defense + defenseGain,
+        maxMana: player.stats.maxMana + manaGain,
+        mana: player.stats.mana + manaGain,
       },
     },
     leveledUp: true,
@@ -119,7 +124,9 @@ export function initiateEventCombat(state: GameState, enemyId: string): GameStat
       maxHp: template.maxHp,
       attack: template.attack,
       defense: template.defense,
-      critBonus: 0,
+      mana: 0,
+      maxMana: 0,
+      gold: 0,
       level: 1,
       xp: 0,
       xpToNextLevel: 9999,
@@ -152,8 +159,7 @@ function resolveEnemyTurn(
     let damage = Math.floor(baseDmg * chargeMult);
 
     if (combat.playerDefending) {
-      // Defend counters charge — massive reduction
-      const blockPct = player.abilities.includes('IRON_WILL') ? 0.85 : 0.7;
+      const blockPct = 0.7;
       damage = Math.floor(damage * (1 - blockPct));
       combat.log.push(`You brace and absorb the charged blow! (-${damage} HP)`);
     } else {
@@ -178,7 +184,7 @@ function resolveEnemyTurn(
       let { damage } = calculateDamage(combat.enemyStats.attack, getPlayerDefense(player));
       damage = Math.floor(damage * 0.6);
       if (combat.playerDefending) {
-        const blockPct = player.abilities.includes('IRON_WILL') ? 0.75 : 0.6;
+        const blockPct = 0.6;
         damage = Math.floor(damage * (1 - blockPct));
       }
       if (combat.playerHeavyPenalty) {
@@ -193,7 +199,7 @@ function resolveEnemyTurn(
   // Basic: single attack
   let { damage } = calculateDamage(combat.enemyStats.attack, getPlayerDefense(player));
   if (combat.playerDefending) {
-    const blockPct = player.abilities.includes('IRON_WILL') ? 0.75 : 0.6;
+    const blockPct = 0.6;
     damage = Math.floor(damage * (1 - blockPct));
   }
   if (combat.playerHeavyPenalty) {
@@ -204,21 +210,9 @@ function resolveEnemyTurn(
   return { combat, player };
 }
 
-function checkSecondWind(player: Player, combat: CombatState): { player: Player; combat: CombatState } {
-  if (
-    !combat.secondWindUsed &&
-    player.abilities.includes('SECOND_WIND') &&
-    player.stats.hp > 0 &&
-    player.stats.hp <= player.stats.maxHp * 0.25
-  ) {
-    const heal = Math.floor(player.stats.maxHp * 0.2);
-    player = { ...player, stats: { ...player.stats, hp: Math.min(player.stats.maxHp, player.stats.hp + heal) } };
-    combat = { ...combat, secondWindUsed: true, log: [...combat.log, `Second Wind activates! You recover ${heal} HP!`] };
-  }
-  return { player, combat };
-}
+// Second Wind removed — replaced by spell system
 
-export type CombatAction = 'ATTACK' | 'FLEE' | 'HEAVY_ATTACK' | 'DEFEND';
+export type CombatAction = 'ATTACK' | 'FLEE' | 'HEAVY_ATTACK' | 'DEFEND' | 'CAST_SPELL';
 
 export function resolveCombatRound(
   state: GameState,
@@ -227,7 +221,7 @@ export function resolveCombatRound(
   if (!state.activeCombat) return state;
   let combat = { ...state.activeCombat, log: [...state.activeCombat.log] };
   let player = state.player;
-  let beast = state.beast;
+  const beast = state.beast;
   const newLog: LogEntry[] = [];
 
   // Reset per-round flags
@@ -284,10 +278,8 @@ export function resolveCombatRound(
     combat.playerTurn = true;
   } else if (action === 'HEAVY_ATTACK') {
     let mult = 1.5;
-    // Riposte bonus
     if (combat.riposteReady) {
-      const riposteMult = player.abilities.includes('RIPOSTE_MASTER') ? 2.0 : 1.5;
-      mult *= riposteMult;
+      mult *= 1.5;
       combat.log.push('Riposte!');
       combat.riposteReady = false;
     }
@@ -297,14 +289,8 @@ export function resolveCombatRound(
       combat.enemyStats.defense,
       getPlayerCritChance(player),
     );
-    let finalDmg = Math.floor(pDmg * mult);
-    // Executioner bonus
-    if (player.abilities.includes('EXECUTIONER') && combat.enemyStats.hp <= combat.enemyStats.maxHp * 0.3) {
-      finalDmg = Math.floor(finalDmg * 2);
-      combat.log.push('Executioner!');
-    }
-    // Stun chance from Power Strike
-    const stunned = player.abilities.includes('POWER_STRIKE') && Math.random() < 0.2;
+    const finalDmg = Math.floor(pDmg * mult);
+    const stunned = false;
 
     const critText = isCrit ? ' (Critical!)' : '';
     combat.enemyStats = { ...combat.enemyStats, hp: Math.max(0, combat.enemyStats.hp - finalDmg) };
@@ -331,10 +317,8 @@ export function resolveCombatRound(
   } else {
     // ATTACK
     let mult = 1.0;
-    // Riposte bonus
     if (combat.riposteReady) {
-      const riposteMult = player.abilities.includes('RIPOSTE_MASTER') ? 2.0 : 1.5;
-      mult *= riposteMult;
+      mult *= 1.5;
       combat.log.push('Riposte!');
       combat.riposteReady = false;
     }
@@ -344,12 +328,7 @@ export function resolveCombatRound(
       combat.enemyStats.defense,
       getPlayerCritChance(player),
     );
-    let finalDmg = Math.floor(pDmg * mult);
-    // Executioner bonus
-    if (player.abilities.includes('EXECUTIONER') && combat.enemyStats.hp <= combat.enemyStats.maxHp * 0.3) {
-      finalDmg = Math.floor(finalDmg * 2);
-      combat.log.push('Executioner!');
-    }
+    const finalDmg = Math.floor(pDmg * mult);
 
     const critText = isCrit ? ' (Critical!)' : '';
     combat.enemyStats = { ...combat.enemyStats, hp: Math.max(0, combat.enemyStats.hp - finalDmg) };
@@ -368,11 +347,6 @@ export function resolveCombatRound(
     combat.round += 1;
     combat.playerTurn = true;
   }
-
-  // Check Second Wind
-  const sw = checkSecondWind(player, combat);
-  player = sw.player;
-  combat = sw.combat;
 
   if (player.stats.hp <= 0) {
     newLog.push(makeLogEntry(state.turn, 'You have been slain. The dungeon claims another soul.'));
@@ -448,9 +422,9 @@ function resolveEnemyDeath(
 
   newLog.push(makeLogEntry(state.turn, `${combat.enemyName} is defeated! (+${xpGain} XP)`));
 
-  // Check level up
+  // Check level up — every level triggers skill selection
   const levelResult = checkLevelUp(player);
-  if (levelResult.leveledUp && levelResult.player.stats.level >= 2 && levelResult.player.stats.level <= 4) {
+  if (levelResult.leveledUp) {
     return {
       ...state,
       phase: 'LEVEL_UP',

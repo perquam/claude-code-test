@@ -6,6 +6,7 @@ const PHASE_LABELS: Record<string, string> = {
   COMBAT: 'Combat',
   INVENTORY: 'Inventory',
   LEVEL_UP: 'Level Up!',
+  MAGIC_BOOK: 'Tome of Arcana',
   GAME_OVER: 'Defeated',
   VICTORY: 'Escaped',
 };

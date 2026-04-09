@@ -3,6 +3,9 @@ import type { Item, ItemType } from './item';
 
 export type RoomState = 'UNDISCOVERED' | 'VISITED' | 'CURRENT';
 
+import type { SkillTier } from './skill';
+import type { SpellId } from './spell';
+
 export type EventType =
   | 'MERCHANT'
   | 'TRAP'
@@ -12,7 +15,8 @@ export type EventType =
   | 'TREASURE'
   | 'EMPTY'
   | 'LORE'
-  | 'MORAL_DILEMMA';
+  | 'MORAL_DILEMMA'
+  | 'WIZARD';
 
 export interface EventOutcome {
   description: string;
@@ -23,13 +27,16 @@ export interface EventOutcome {
   statModifier?: { attack?: number; defense?: number; maxHp?: number };
   combatTrigger?: string; // monster ID if this choice starts combat
   buffGained?: { type: 'ATTACK' | 'DEFENSE' | 'POISON'; value: number; turnsRemaining: number };
+  magicBookGranted?: boolean;
+  spellGranted?: SpellId;
+  goldDelta?: number;
 }
 
 export interface EventChoice {
   id: string;
   text: string;
   outcome: EventOutcome;
-  requires?: { item?: ItemType; minLevel?: number; minHp?: number };
+  requires?: { item?: ItemType; minLevel?: number; minHp?: number; minWisdom?: SkillTier; hasMagicBook?: boolean; minGold?: number };
 }
 
 export interface RoomEventTemplate {

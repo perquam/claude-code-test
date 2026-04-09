@@ -2,6 +2,7 @@ import { v4 as uuid } from 'uuid';
 import type { GameState, LogEntry } from '../types/game';
 import type { Position } from '../types/game';
 import type { Player } from '../types/player';
+import type { SkillId } from '../types/skill';
 import { isValid, posEqual } from './grid';
 import { applyFogTransition } from './fog';
 import { moveBeast, isBeastOnPlayer } from './beast';
@@ -9,18 +10,26 @@ import { initiateBeastCombat, resolveCombatRound } from './combat';
 import type { CombatAction } from './combat';
 import { resolveEventChoice, triggerRoomEvent } from './events';
 import { useItem, equipItem, pickupLoot } from './items';
-import { SKILL_OPTIONS } from '../data/skills';
+import { upgradeSkill, canUpgradeSkill } from './skills';
+import { castSpellInCombat, learnSpellFromScroll } from './spells';
+import { getMysticismRegen } from '../data/skills';
+import { SKILL_DEFINITIONS } from '../data/skills';
 
 export type PlayerAction =
   | { type: 'MOVE'; direction: 'N' | 'S' | 'E' | 'W' }
   | { type: 'CHOOSE_EVENT'; choiceId: string }
   | { type: 'COMBAT_ACTION'; action: CombatAction }
+  | { type: 'CAST_SPELL'; spellId: string }
+  | { type: 'LEARN_SPELL'; itemId: string }
   | { type: 'USE_ITEM'; itemId: string }
   | { type: 'EQUIP_ITEM'; itemId: string }
   | { type: 'PICKUP_LOOT'; itemId: string }
+  | { type: 'DISCARD_ITEM'; itemId: string }
   | { type: 'USE_EXIT' }
   | { type: 'END_TURN' }
   | { type: 'LEVEL_UP_CHOICE'; skillId: string }
+  | { type: 'OPEN_MAGIC_BOOK' }
+  | { type: 'CLOSE_MAGIC_BOOK' }
   | { type: 'RESTART' };
 
 function sysLog(turn: number, message: string): LogEntry {
@@ -66,17 +75,31 @@ function applyCursedBladeDrain(player: Player): Player {
   return player;
 }
 
+function applyMysticismRegen(player: Player): Player {
+  const regen = getMysticismRegen(player.skills.MYSTICISM);
+  if (regen <= 0) return player;
+  const newMana = Math.min(player.stats.maxMana, player.stats.mana + regen);
+  return { ...player, stats: { ...player.stats, mana: newMana } };
+}
+
+function tickStaminaCooldown(player: Player): Player {
+  if (player.staminaCooldown <= 0) return player;
+  return { ...player, staminaCooldown: player.staminaCooldown - 1 };
+}
+
 function advanceTurn(state: GameState): GameState {
   // Beast moves one step
   let next = moveBeast(state);
   next = { ...next, turn: next.turn + 1 };
 
-  // Tick buffs and cursed blade
+  // Tick buffs, cursed blade, mysticism regen, stamina cooldown
   let player = tickBuffs(next.player);
   player = applyCursedBladeDrain(player);
+  player = applyMysticismRegen(player);
+  player = tickStaminaCooldown(player);
   next = { ...next, player };
 
-  // Beast catches player → combat
+  // Beast catches player -> combat
   if (isBeastOnPlayer(next) && !next.beast.isDefeated && next.phase === 'EXPLORING') {
     next = initiateBeastCombat(next);
   }
@@ -89,11 +112,12 @@ function advanceTurn(state: GameState): GameState {
   return next;
 }
 
+const MAX_INVENTORY = 10;
+
 export function processPlayerAction(state: GameState, action: PlayerAction): GameState {
   // Terminal states — only RESTART is valid
   if (state.phase === 'GAME_OVER' || state.phase === 'VICTORY') {
     if (action.type === 'RESTART') {
-      // Handled externally — return state unchanged (reinit happens in store)
       return state;
     }
     return state;
@@ -102,9 +126,9 @@ export function processPlayerAction(state: GameState, action: PlayerAction): Gam
   switch (action.type) {
     case 'MOVE': {
       if (state.phase !== 'EXPLORING') return state;
-      if (state.movedThisTurn) return state; // one move per turn
+      if (state.movedThisTurn) return state;
       const currentRoom = state.grid[state.player.position.row][state.player.position.col];
-      if (!currentRoom.connections.includes(action.direction)) return state; // wall
+      if (!currentRoom.connections.includes(action.direction)) return state;
       const delta = DIRECTION_DELTA[action.direction];
       const newPos: Position = {
         row: state.player.position.row + delta.row,
@@ -132,30 +156,89 @@ export function processPlayerAction(state: GameState, action: PlayerAction): Gam
 
     case 'CHOOSE_EVENT': {
       if (state.phase !== 'EVENT' || !state.activeEvent) return state;
-      const next = resolveEventChoice(state, action.choiceId);
-      return next;
+      return resolveEventChoice(state, action.choiceId);
     }
 
     case 'COMBAT_ACTION': {
       if (state.phase !== 'COMBAT' || !state.activeCombat) return state;
-      const next = resolveCombatRound(state, action.action);
+      return resolveCombatRound(state, action.action);
+    }
+
+    case 'CAST_SPELL': {
+      if (state.phase !== 'COMBAT' || !state.activeCombat) return state;
+      let next = castSpellInCombat(state, action.spellId);
+      // After casting, enemy gets a turn (spell is turn-consuming)
+      if (next.activeCombat && next.activeCombat.enemyStats.hp > 0 && next.player.stats.hp > 0) {
+        // Route through combat round with a no-op to trigger enemy turn
+        // Actually, let's just advance the round in the spell handler
+        next = {
+          ...next,
+          activeCombat: {
+            ...next.activeCombat!,
+            round: next.activeCombat!.round + 1,
+            playerTurn: true,
+          },
+        };
+      }
+      // Check if enemy died from spell
+      if (next.activeCombat && next.activeCombat.enemyStats.hp <= 0) {
+        return resolveCombatRound(next, 'ATTACK'); // Will trigger enemy death path
+      }
       return next;
     }
 
+    case 'LEARN_SPELL': {
+      return learnSpellFromScroll(state, action.itemId);
+    }
+
     case 'USE_ITEM': {
-      // Free action — no beast move consumed
       return useItem(state, action.itemId);
     }
 
     case 'EQUIP_ITEM': {
-      // Free action
       return equipItem(state, action.itemId);
     }
 
     case 'PICKUP_LOOT': {
       if (state.phase !== 'EXPLORING') return state;
-      const next = pickupLoot(state, action.itemId);
-      return next;
+      // Check inventory limit
+      const currentRoom = state.grid[state.player.position.row][state.player.position.col];
+      const item = currentRoom.loot.find(i => i.id === action.itemId);
+      if (!item) return state;
+      // Gold goes to stats, not inventory
+      if (item.type === 'GOLD') {
+        return pickupLoot(state, action.itemId);
+      }
+      // Magic book sets flag
+      if (item.type === 'MAGIC_BOOK') {
+        return pickupLoot(state, action.itemId);
+      }
+      // Key doesn't count toward inventory limit
+      if (item.type === 'KEY') {
+        return pickupLoot(state, action.itemId);
+      }
+      if (state.player.inventory.filter(i => i.type !== 'KEY').length >= MAX_INVENTORY) {
+        return {
+          ...state,
+          log: [...state.log, sysLog(state.turn, 'Inventory full! Discard an item first.')],
+        };
+      }
+      return pickupLoot(state, action.itemId);
+    }
+
+    case 'DISCARD_ITEM': {
+      const item = state.player.inventory.find(i => i.id === action.itemId);
+      if (!item) return state;
+      if (item.type === 'KEY') return state; // Cannot discard key
+      const player = {
+        ...state.player,
+        inventory: state.player.inventory.filter(i => i.id !== action.itemId),
+      };
+      return {
+        ...state,
+        player,
+        log: [...state.log, sysLog(state.turn, `You discard the ${item.name}.`)],
+      };
     }
 
     case 'END_TURN': {
@@ -167,24 +250,14 @@ export function processPlayerAction(state: GameState, action: PlayerAction): Gam
 
     case 'LEVEL_UP_CHOICE': {
       if (state.phase !== 'LEVEL_UP') return state;
-      const level = state.player.stats.level;
-      const options = SKILL_OPTIONS[level];
-      if (!options) return state;
-      const skill = options.find(s => s.id === action.skillId);
-      if (!skill) return state;
+      const skillId = action.skillId as SkillId;
+      if (!canUpgradeSkill(state.player.skills, skillId)) return state;
 
-      let player = state.player;
-      player = {
-        ...player,
-        abilities: [...player.abilities, skill.id],
-        stats: {
-          ...player.stats,
-          attack: player.stats.attack + (skill.statChanges.attack ?? 0),
-          defense: player.stats.defense + (skill.statChanges.defense ?? 0),
-          maxHp: player.stats.maxHp + (skill.statChanges.maxHp ?? 0),
-          hp: player.stats.hp + (skill.statChanges.maxHp ?? 0),
-          critBonus: player.stats.critBonus + (skill.statChanges.critBonus ?? 0),
-        },
+      const newSkills = upgradeSkill(state.player.skills, skillId);
+      const skillInfo = SKILL_DEFINITIONS[skillId];
+      const player = {
+        ...state.player,
+        skills: newSkills,
       };
 
       return {
@@ -193,8 +266,19 @@ export function processPlayerAction(state: GameState, action: PlayerAction): Gam
         phase: state.phaseBeforeLevelUp ?? 'EXPLORING',
         pendingLevelUp: false,
         phaseBeforeLevelUp: null,
-        log: [...state.log, sysLog(state.turn, `You learned ${skill.name}!`)],
+        log: [...state.log, sysLog(state.turn, `${skillInfo.name} upgraded!`)],
       };
+    }
+
+    case 'OPEN_MAGIC_BOOK': {
+      if (!state.player.hasMagicBook) return state;
+      if (state.phase !== 'EXPLORING') return state;
+      return { ...state, phase: 'MAGIC_BOOK' };
+    }
+
+    case 'CLOSE_MAGIC_BOOK': {
+      if (state.phase !== 'MAGIC_BOOK') return state;
+      return { ...state, phase: 'EXPLORING' };
     }
 
     case 'USE_EXIT': {

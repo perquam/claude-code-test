@@ -102,7 +102,26 @@ export default function EventCard({ event, player }: Props) {
     if (req.item && !player.inventory.some(i => i.type === req.item)) return false;
     if (req.minLevel && player.stats.level < req.minLevel) return false;
     if (req.minHp && player.stats.hp < req.minHp) return false;
+    if (req.minWisdom !== undefined && player.skills.WISDOM < req.minWisdom) return false;
+    if (req.hasMagicBook && !player.hasMagicBook) return false;
+    if (req.minGold !== undefined && player.stats.gold < req.minGold) return false;
     return true;
+  }
+
+  function getRequirementHint(choice: typeof template.choices[number]): string | null {
+    const req = choice.requires;
+    if (!req) return null;
+    if (req.item && !player.inventory.some(i => i.type === req.item))
+      return `requires ${req.item.replace(/_/g, ' ').toLowerCase()}`;
+    if (req.minGold !== undefined && player.stats.gold < req.minGold)
+      return `requires ${req.minGold} gold`;
+    if (req.minWisdom !== undefined && player.skills.WISDOM < req.minWisdom)
+      return `requires higher Wisdom`;
+    if (req.hasMagicBook && !player.hasMagicBook)
+      return `requires Tome of Arcana`;
+    if (req.minHp && player.stats.hp < req.minHp)
+      return `requires ${req.minHp} HP`;
+    return null;
   }
 
   return (
@@ -145,9 +164,9 @@ export default function EventCard({ event, player }: Props) {
               onMouseOut={e => { (e.currentTarget as HTMLElement).style.background = enabled ? 'var(--color-stone-mid)' : 'var(--color-shadow-mid)'; }}
             >
               {choice.text}
-              {choice.requires?.item && !enabled && (
+              {!enabled && getRequirementHint(choice) && (
                 <span style={{ color: 'var(--color-blood)', marginLeft: 6, fontSize: 11 }}>
-                  (requires {choice.requires.item.replace(/_/g, ' ').toLowerCase()})
+                  ({getRequirementHint(choice)})
                 </span>
               )}
             </button>

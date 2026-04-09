@@ -5,7 +5,9 @@ export const BEAST_BASE_STATS: Stats = {
   maxHp: 80,
   attack: 18,
   defense: 8,
-  critBonus: 0,
+  mana: 0,
+  maxMana: 0,
+  gold: 0,
   level: 5,
   xp: 0,
   xpToNextLevel: 9999, // beast doesn't level up

@@ -1,0 +1,66 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --color-void:       #0a0a0f;
+  --color-shadow:     #1a1a2e;
+  --color-shadow-mid: #20203a;
+  --color-stone:      #2d2d44;
+  --color-stone-mid:  #383850;
+  --color-highlight:  #4a4a6a;
+  --color-torch:      #c8a84b;
+  --color-torch-dim:  #8a6e28;
+  --color-blood:      #a00000;
+  --color-mana:       #1a3a6e;
+  --color-xp:         #2a6e3a;
+  --color-parchment:  #d4c5a0;
+  --color-parchment-dim: #8a7e60;
+  --color-beast-hint: #ff6b35;
+  --color-exit:       #44bb88;
+  --color-key:        #f0d060;
+  --color-border:     #333355;
+  --color-rarity-common:    #9d9d9d;
+  --color-rarity-uncommon:  #1eff00;
+  --color-rarity-rare:      #0070dd;
+  --color-rarity-legendary: #ff8000;
+  --color-mana-bar:         #3355dd;
+  --color-spell-glow:       #88aaff;
+
+  --font-ui: 'Georgia', 'Times New Roman', serif;
+  --font-mono: 'Courier New', Courier, monospace;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  background: var(--color-void);
+  color: var(--color-parchment);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-void);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}

@@ -2,6 +2,7 @@ import { useGame } from '../../store/useGame';
 import EventCard from './EventCard';
 import CombatActions from '../combat/CombatActions';
 import LevelUpScreen from '../player/LevelUpScreen';
+import MagicBook from '../player/MagicBook';
 import ItemList from './ItemList';
 import { ROOM_IMAGES } from '../../assets/rooms';
 import type { Room } from '../../types/room';
@@ -16,6 +17,7 @@ const ROOM_TYPE_LABELS: Record<string, string> = {
   LORE: 'Discovery',
   EMPTY: 'Empty Chamber',
   MORAL_DILEMMA: 'Moral Choice',
+  WIZARD: 'Arcane Chamber',
 };
 
 function getRoomImage(room: Room): string {
@@ -81,6 +83,10 @@ export default function RoomPanel() {
           <LevelUpScreen />
         )}
 
+        {phase === 'MAGIC_BOOK' && (
+          <MagicBook />
+        )}
+
         {phase === 'EXPLORING' && canUseExit && (
           <div style={{ padding: '12px 16px' }}>
             <button
@@ -106,6 +112,26 @@ export default function RoomPanel() {
           <p style={{ color: 'var(--color-parchment-dim)', fontSize: 13, fontStyle: 'italic', padding: '0 16px' }}>
             The door is sealed. You need the Iron Key.
           </p>
+        )}
+
+        {phase === 'EXPLORING' && state.player.hasMagicBook && (
+          <div style={{ padding: '0 16px 8px' }}>
+            <button
+              onClick={() => dispatch({ type: 'OPEN_MAGIC_BOOK' })}
+              style={{
+                background: '#1a3a6e',
+                color: '#88aaff',
+                border: '1px solid #3355dd',
+                borderRadius: 4,
+                padding: '6px 12px',
+                fontSize: 12,
+                cursor: 'pointer',
+                fontFamily: 'var(--font-mono)',
+              }}
+            >
+              📕 Open Tome of Arcana ({state.player.spells.length}/5 spells)
+            </button>
+          </div>
         )}
 
         {currentRoom.loot.length > 0 && phase === 'EXPLORING' && (

@@ -1,4 +1,5 @@
 import type { RoomEventTemplate } from '../types/room';
+import type { SpellId } from '../types/spell';
 
 export const EVENT_POOL: RoomEventTemplate[] = [
   // ── LORE ───────────────────────────────────────────────────────────────
@@ -62,22 +63,22 @@ export const EVENT_POOL: RoomEventTemplate[] = [
     choices: [
       {
         id: "buy_potion",
-        text: "Buy a health potion (costs gold)",
-        requires: { item: "GOLD" },
+        text: "Buy a health potion (costs 10 gold)",
+        requires: { minGold: 10 },
         outcome: {
           description: "The merchant slides a potion across the counter with a grunt.",
           itemsGained: ["POTION_HEALTH_LARGE"],
-          itemsLost: ["GOLD"],
+          goldDelta: -10,
         },
       },
       {
         id: "buy_disarm",
-        text: "Buy a trap disarm kit (costs gold)",
-        requires: { item: "GOLD" },
+        text: "Buy a trap disarm kit (costs 8 gold)",
+        requires: { minGold: 8 },
         outcome: {
           description: "A small kit wrapped in cloth. \"Breaks after one use,\" the merchant warns.",
           itemsGained: ["TRAP_DISARM_KIT"],
-          itemsLost: ["GOLD"],
+          goldDelta: -8,
         },
       },
       {
@@ -113,8 +114,9 @@ export const EVENT_POOL: RoomEventTemplate[] = [
         text: "Take their goods and leave — you cannot afford the risk",
         outcome: {
           description:
-            "You take the bundle and walk away. The merchant stares after you, hollow-eyed.",
+            "You take the bundle and walk away. The merchant stares after you, hollow-eyed. (+5 gold)",
           itemsGained: ["POTION_HEALTH_SMALL"],
+          goldDelta: 5,
         },
       },
       {
@@ -388,8 +390,8 @@ export const EVENT_POOL: RoomEventTemplate[] = [
         id: "gather_coins",
         text: "Gather what coins you can",
         outcome: {
-          description: "You fill your pockets with gold. Heavy, but useful if you find the trader.",
-          itemsGained: ["GOLD"],
+          description: "You fill your pockets with gold. Heavy, but useful if you find the trader. (+10 gold)",
+          goldDelta: 10,
           xpDelta: 5,
         },
       },
@@ -568,8 +570,9 @@ export const EVENT_POOL: RoomEventTemplate[] = [
         id: "loot_supplies",
         text: "Take her supplies while she still breathes",
         outcome: {
-          description: "She watches you rummage through her things. She does not cry. That is worse. (+Health Potion, +Gold, -5 XP)",
-          itemsGained: ["POTION_HEALTH_LARGE", "GOLD"],
+          description: "She watches you rummage through her things. She does not cry. That is worse. (+Health Potion, +5 gold, -5 XP)",
+          itemsGained: ["POTION_HEALTH_LARGE"],
+          goldDelta: 5,
           xpDelta: -5,
         },
       },
@@ -774,11 +777,11 @@ export const EVENT_POOL: RoomEventTemplate[] = [
     choices: [
       {
         id: "buy_freedom",
-        text: "Pay gold to free the prisoners",
-        requires: { item: "GOLD" },
+        text: "Pay gold to free the prisoners (costs 15 gold)",
+        requires: { minGold: 15 },
         outcome: {
           description: "He bites the coin, nods, and unlocks the chains. The freed prisoners press something into your hand before vanishing. (+25 XP, +Potion of Iron Skin)",
-          itemsLost: ["GOLD"],
+          goldDelta: -15,
           itemsGained: ["POTION_IRON_SKIN"],
           xpDelta: 25,
         },
@@ -815,10 +818,10 @@ export const EVENT_POOL: RoomEventTemplate[] = [
         id: "help_plague",
         text: "Help them anyway — risk the infection",
         outcome: {
-          description: "You dress their wounds with torn cloth. Something stings your skin where their blood touches. They press gold into your hand. \"Thank you.\" (-8 HP, +20 XP, +Gold)",
+          description: "You dress their wounds with torn cloth. Something stings your skin where their blood touches. They press gold into your hand. \"Thank you.\" (-8 HP, +20 XP, +8 gold)",
           hpDelta: -8,
           xpDelta: 20,
-          itemsGained: ["GOLD"],
+          goldDelta: 8,
         },
       },
       {
@@ -862,11 +865,11 @@ export const EVENT_POOL: RoomEventTemplate[] = [
       },
       {
         id: "give_gold",
-        text: "Offer gold instead",
-        requires: { item: "GOLD" },
+        text: "Offer gold instead (costs 5 gold)",
+        requires: { minGold: 5 },
         outcome: {
           description: "She takes the gold reluctantly. \"This will not stop the things down here.\" But her eyes soften. \"Go. Be safe.\" (+15 XP)",
-          itemsLost: ["GOLD"],
+          goldDelta: -5,
           xpDelta: 15,
         },
       },
@@ -977,8 +980,9 @@ export const EVENT_POOL: RoomEventTemplate[] = [
         id: "accept_deal",
         text: "Accept the deal — take the supplies",
         outcome: {
-          description: "He hands you a pack full of useful things. \"Remember: make noise.\" You know the beast will come. You took the deal anyway. (+Sword, +Gold, +Health Potion)",
-          itemsGained: ["WEAPON_SWORD", "GOLD", "POTION_HEALTH_LARGE"],
+          description: "He hands you a pack full of useful things. \"Remember: make noise.\" You know the beast will come. You took the deal anyway. (+Sword, +15 gold, +Health Potion)",
+          itemsGained: ["WEAPON_SWORD", "POTION_HEALTH_LARGE"],
+          goldDelta: 15,
         },
       },
       {
@@ -1004,7 +1008,183 @@ export const EVENT_POOL: RoomEventTemplate[] = [
     minLevel: 2,
     maxLevel: 99,
   },
+  // ── WIZARD ─────────────────────────────────────────────────────────────
+  {
+    id: "WIZARD_TOWER",
+    type: "WIZARD",
+    title: "The Hermit Wizard",
+    description:
+      "An old man in tattered robes sits cross-legged in a room lined with bookshelves. Candles float in the air around him. He opens one eye. \"Ah. Another seeker. I have what you want — the Tome of Arcana. But knowledge has a price.\"",
+    choices: [
+      {
+        id: "sacrifice_hp",
+        text: "Offer your blood as payment (-15 HP)",
+        requires: { minHp: 20 },
+        outcome: {
+          description: "The wizard draws a sigil in your blood. The tome flies from the shelf into your hands. Its pages glow. \"Use it wisely. Or don't. I stopped caring centuries ago.\" (+Tome of Arcana)",
+          hpDelta: -15,
+          magicBookGranted: true,
+          xpDelta: 20,
+        },
+      },
+      {
+        id: "pay_gold",
+        text: "Pay the wizard in gold (costs 20 gold)",
+        requires: { minGold: 20 },
+        outcome: {
+          description: "He weighs the gold thoughtfully. \"Acceptable.\" The tome drifts toward you. \"The first spell is always free. After that, you are on your own.\" (+Tome of Arcana)",
+          goldDelta: -20,
+          magicBookGranted: true,
+          spellGranted: "MAGIC_ARROW",
+          xpDelta: 15,
+        },
+      },
+      {
+        id: "fight_wizard",
+        text: "Take the book by force",
+        outcome: {
+          description: "The wizard sighs. \"They always try.\" Lightning crackles in his fingers.",
+          combatTrigger: "WIZARD",
+        },
+      },
+    ],
+    isCombat: true,
+    weight: 6,
+    minLevel: 1,
+    maxLevel: 99,
+  },
+  {
+    id: "WIZARD_LIBRARY",
+    type: "WIZARD",
+    title: "Forgotten Library",
+    description:
+      "Dust motes dance in pale light filtering through cracked stone. Bookshelves line every wall, most volumes rotted beyond reading. But one shelf glows faintly — spell scrolls, preserved by magic.",
+    choices: [
+      {
+        id: "take_scroll",
+        text: "Take a spell scroll",
+        outcome: {
+          description: "You carefully extract a scroll. The glow fades as it leaves the shelf, but the magic within remains. (+Spell Scroll)",
+          itemsGained: ["SPELL_SCROLL"],
+          xpDelta: 10,
+        },
+      },
+      {
+        id: "study_shelves",
+        text: "Study the remaining books for knowledge",
+        outcome: {
+          description: "Most are illegible. But fragments of arcane theory stick in your mind. You feel wiser. (+20 XP)",
+          xpDelta: 20,
+        },
+      },
+    ],
+    isCombat: false,
+    weight: 5,
+    minLevel: 1,
+    maxLevel: 99,
+  },
+  {
+    id: "SPELL_CACHE",
+    type: "TREASURE",
+    title: "Arcane Cache",
+    description:
+      "Behind a loose stone in the wall, you find a hidden compartment. Inside: a scroll sealed with wax, and a small blue potion. Someone hid these for safekeeping — and never came back.",
+    choices: [
+      {
+        id: "take_all",
+        text: "Take the scroll and potion",
+        outcome: {
+          description: "You pocket both. The compartment is empty now. (+Spell Scroll, +Mana Potion)",
+          itemsGained: ["SPELL_SCROLL", "POTION_MANA"],
+          xpDelta: 5,
+        },
+      },
+      {
+        id: "take_scroll_only",
+        text: "Take only the scroll",
+        outcome: {
+          description: "You take the scroll and leave the potion. Perhaps someone else will need it more. (+Spell Scroll, +10 XP)",
+          itemsGained: ["SPELL_SCROLL"],
+          xpDelta: 10,
+        },
+      },
+    ],
+    isCombat: false,
+    weight: 5,
+    minLevel: 1,
+    maxLevel: 99,
+  },
+  {
+    id: "MANA_SPRING",
+    type: "SHRINE",
+    title: "Mana Spring",
+    description:
+      "A pool of luminescent blue liquid bubbles from a crack in the floor. The air hums with magical energy. You can feel it pulling at something inside you.",
+    choices: [
+      {
+        id: "drink_mana",
+        text: "Drink from the spring",
+        outcome: {
+          description: "The liquid tastes like lightning. Your mind expands. Magical energy courses through you. (+15 mana, +5 max mana)",
+          statModifier: { maxHp: 0 },
+        },
+      },
+      {
+        id: "bathe_wounds",
+        text: "Bathe your wounds in the spring",
+        outcome: {
+          description: "The blue water seals your cuts with faint light. You feel restored. (+15 HP)",
+          hpDelta: 15,
+        },
+      },
+    ],
+    isCombat: false,
+    weight: 4,
+    minLevel: 1,
+    maxLevel: 99,
+  },
+  {
+    id: "LEGENDARY_WEAPON_ROOM",
+    type: "TREASURE",
+    title: "The Sealed Armory",
+    description:
+      "A heavy iron door stands ajar. Beyond it, a single weapon rests on a velvet cushion, bathed in golden light. The air crackles with dormant power.",
+    choices: [
+      {
+        id: "take_weapon",
+        text: "Take the legendary weapon",
+        outcome: {
+          description: "As your hand closes around the hilt, power surges through you. This is no ordinary blade. (+Soulreaper Blade, +20 XP)",
+          itemsGained: ["WEAPON_SOULREAPER"],
+          xpDelta: 20,
+        },
+      },
+      {
+        id: "leave_weapon",
+        text: "Leave it — such power always has a cost",
+        outcome: {
+          description: "You back away. The golden light dims, as if disappointed. (+10 XP)",
+          xpDelta: 10,
+        },
+      },
+    ],
+    isCombat: false,
+    weight: 1,
+    minLevel: 3,
+    maxLevel: 99,
+  },
 ];
+
+// Spell scrolls that can appear: one helper to get a random spell for scroll drops
+const SCROLL_SPELL_POOL: SpellId[] = [
+  'MAGIC_ARROW', 'CURE', 'ICE_ARMOR', 'CURSE',
+  'FIREBALL', 'HASTE', 'DRAIN_LIFE', 'GREATER_HEAL',
+  'LIGHTNING_BOLT', 'CHAIN_LIGHTNING', 'RESURRECTION', 'ARMAGEDDON',
+];
+
+export function getRandomScrollSpell(): SpellId {
+  return SCROLL_SPELL_POOL[Math.floor(Math.random() * SCROLL_SPELL_POOL.length)];
+}
 
 // Enemy stat templates for combat encounters triggered by events
 import type { EnemyBehavior } from '../types/game';
@@ -1124,5 +1304,20 @@ export const ENEMY_TEMPLATES: Record<string, EnemyTemplate> = {
     ],
     canFlee: true,
     behavior: 'basic',
+  },
+  WIZARD: {
+    id: "WIZARD",
+    name: "The Hermit Wizard",
+    hp: 40,
+    maxHp: 40,
+    attack: 14,
+    defense: 6,
+    xpReward: 50,
+    lootTable: [
+      { itemType: "MAGIC_BOOK", chance: 1.0 },
+      { itemType: "SPELL_SCROLL", chance: 0.6 },
+    ],
+    canFlee: true,
+    behavior: 'quick',
   },
 };
